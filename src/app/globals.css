@@ -7,6 +7,7 @@
   --tide-bg-2: #0b1830;
   --tide-accent: #22d3ee;
   --tide-accent-2: #6366f1;
+  --tide-accent-3: #f472b6;
 }
 
 @theme inline {
@@ -16,6 +17,7 @@
   --color-tide-bg-2: var(--tide-bg-2);
   --color-tide-accent: var(--tide-accent);
   --color-tide-accent-2: var(--tide-accent-2);
+  --color-tide-accent-3: var(--tide-accent-3);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-orbitron: var(--font-orbitron);
@@ -184,3 +186,75 @@ body {
   to { clip-path: inset(0 0 0 0); }
 }
 .hud-reveal { animation: tide-reveal-width 1.4s ease-out forwards; }
+
+/* ---- Talkwave-marketingsite: zwevende gradient-blobs, glow, glas-kaarten ---- */
+
+@keyframes blob-float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(4%, -6%) scale(1.08); }
+  66% { transform: translate(-3%, 4%) scale(0.95); }
+}
+@keyframes blob-float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-5%, 5%) scale(1.05); }
+  66% { transform: translate(4%, -3%) scale(0.97); }
+}
+@keyframes blob-float-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-4%, -4%) scale(1.1); }
+}
+
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  pointer-events: none;
+  opacity: 0.55;
+}
+.blob-a { animation: blob-float-a 18s ease-in-out infinite; }
+.blob-b { animation: blob-float-b 22s ease-in-out infinite; }
+.blob-c { animation: blob-float-c 16s ease-in-out infinite; }
+
+.site-dark {
+  background: var(--tide-bg);
+  color: #eef6fb;
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, var(--tide-accent), var(--tide-accent-2) 45%, var(--tide-accent-3) 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 6s ease-in-out infinite;
+}
+@keyframes gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, background 0.35s ease;
+}
+.glass-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(34, 211, 238, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 20px 60px -20px rgba(34, 211, 238, 0.35);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.pulse-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--tide-accent);
+  animation: pulse-ring 3s ease-out infinite;
+}
