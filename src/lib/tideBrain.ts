@@ -133,6 +133,7 @@ export async function respondTo(
       "- je agenda voorlezen én er afspraken in plannen (\"plan morgen 14:00 een call\")\n" +
       "- je Magister-rooster voorlezen\n" +
       "- mijn kennisbank doorzoeken\n" +
+      "- een 3D-model van iets maken en laten zien (\"maak een 3D-model van een raket\")\n" +
       "- (als gekoppeld) het internet doorzoeken\n\n" +
       "Status van mijn koppelingen:\n" +
       lines.join("\n")

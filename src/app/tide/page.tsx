@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useVoice } from "@/hooks/useVoice";
+import { Scene3DViewer } from "@/components/Scene3DViewer";
+import type { Scene3DData } from "@/lib/scene3d";
 
 interface Message {
   role: "user" | "assistant";
   text: string;
+  scene?: Scene3DData;
 }
 
 interface ConnectorInfo {
@@ -22,7 +25,10 @@ const QUICK_ACTIONS = [
   "Hoe laat is het?",
   "Wat staat er in mijn agenda?",
   "Plan morgen 10:00 een call",
+  "Maak een 3D-model van een raket",
 ];
+
+const SCENE3D_TRIGGER = /\b3d[\s-]?model(len)?\b|\bin 3d\b|driedimensionaal/i;
 
 function NodeLines({ className }: { className?: string }) {
   const nodes = [
@@ -195,6 +201,29 @@ export default function TidePage() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
 
+  async function generate3DModel(prompt: string) {
+    try {
+      const res = await fetch("/api/tide/scene3d", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.scene) {
+        const reply = data.error || "Kon geen 3D-model maken van dat verzoek.";
+        setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+        speak(reply);
+        return;
+      }
+      const reply = `Hier is een 3D-model van "${prompt}".`;
+      setMessages((prev) => [...prev, { role: "assistant", text: reply, scene: data.scene }]);
+      speak(reply);
+    } catch {
+      const reply = "Er ging iets mis bij het genereren van het 3D-model.";
+      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+    }
+  }
+
   async function handleSendMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -203,6 +232,12 @@ export default function TidePage() {
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
     setInput("");
     setThinking(true);
+
+    if (SCENE3D_TRIGGER.test(trimmed)) {
+      await generate3DModel(trimmed);
+      setThinking(false);
+      return;
+    }
 
     // eslint-disable-next-line react-hooks/purity -- only runs from event handlers, never during render
     const startedAt = Date.now();
@@ -324,11 +359,16 @@ export default function TidePage() {
                 m.role === "user"
                   ? "ml-auto bg-tide-accent-2/20 text-tide-accent-2 border border-tide-accent-2/30"
                   : "border border-tide-accent/20 bg-white/5 text-white/90"
-              }`}
+              } ${m.scene ? "w-full max-w-full" : ""}`}
             >
               {m.text.split("\n").map((line, j) => (
                 <div key={j}>{line}</div>
               ))}
+              {m.scene && (
+                <div className="mt-2">
+                  <Scene3DViewer scene={m.scene} />
+                </div>
+              )}
             </div>
           ))}
           {thinking && (

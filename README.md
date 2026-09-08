@@ -46,6 +46,7 @@ daarbuiten:
 | Zelf afspraken inplannen ("plan morgen 14:00 een call") | Nee | dezelfde Google-koppeling, met schrijfrechten (zie hieronder) |
 | Magister-rooster | Nee | `MAGISTER_ICS_URL` |
 | Live internet doorzoeken | Nee | `BRAVE_SEARCH_API_KEY` |
+| 3D-modellen genereren en tonen ("maak een 3D-model van...") | Nee | dezelfde `GEMINI_API_KEY` |
 
 Kopieer `.env.example` naar `.env.local` en vul in wat je hebt — elke
 koppeling die je invult, schakelt Tide automatisch aan. In de UI zie je
@@ -61,6 +62,18 @@ de afspraak (standaard 1 uur) in je Google Agenda.
 
 Dit vereist dat je Google OAuth-client de volledige `calendar`-scope heeft
 (niet `calendar.readonly`) — zie `.env.example` voor de exacte stappen.
+
+### 3D-modellen genereren
+
+Zeg of typ bijvoorbeeld: *"maak een 3D-model van een raket"*. Tide vraagt
+Gemini om een scene te bedenken (opgebouwd uit simpele 3D-vormen: kubussen,
+bollen, cilinders, kegels, ringen — geen losse betaalde 3D-generatiedienst
+nodig), en rendert die direct als een draaibaar model met Three.js, in
+dezelfde HUD-stijl. Sleep met de muis om te draaien.
+
+Gemini's antwoord wordt altijd gesaniteerd voordat het gerenderd wordt
+(`src/lib/scene3d.ts`): alleen getallen, kleuren en een vaste lijst
+toegestane vormen worden gelezen, er wordt nooit code uitgevoerd.
 
 ### Over Magister
 
