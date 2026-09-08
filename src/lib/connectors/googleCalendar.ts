@@ -84,3 +84,57 @@ export async function getUpcomingGoogleEvents(
       : undefined,
   }));
 }
+
+function addMinutesToLocalIso(isoLocal: string, minutes: number): string {
+  const [datePart, timePart] = isoLocal.split("T");
+  const [y, mo, d] = datePart.split("-").map(Number);
+  const [h, mi] = timePart.split(":").map(Number);
+  // Puur wandklok-rekenwerk (geen echte UTC-instant) om dag/maand-overloop op te vangen.
+  const helper = new Date(Date.UTC(y, mo - 1, d, h, mi));
+  helper.setUTCMinutes(helper.getUTCMinutes() + minutes);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${helper.getUTCFullYear()}-${pad(helper.getUTCMonth() + 1)}-${pad(helper.getUTCDate())}T${pad(helper.getUTCHours())}:${pad(helper.getUTCMinutes())}:00`;
+}
+
+/**
+ * Maakt een afspraak aan. isoLocalStart is een wandklok-tijd zonder offset
+ * (bv. "2024-06-10T14:00:00"), die samen met timeZone "Europe/Amsterdam"
+ * naar Google gestuurd wordt — Google rekent zelf de juiste UTC-instant uit.
+ * Vereist dat de gekoppelde Google-account schrijftoegang heeft gegeven
+ * (scope "https://www.googleapis.com/auth/calendar" i.p.v. alleen readonly).
+ */
+export async function createGoogleEvent(
+  title: string,
+  isoLocalStart: string,
+  durationMinutes = 60
+): Promise<{ htmlLink?: string }> {
+  if (!isConfigured()) {
+    throw new Error("Google Agenda is niet gekoppeld.");
+  }
+
+  const accessToken = await getAccessToken();
+  const isoLocalEnd = addMinutesToLocalIso(isoLocalStart, durationMinutes);
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        summary: title,
+        start: { dateTime: isoLocalStart, timeZone: "Europe/Amsterdam" },
+        end: { dateTime: isoLocalEnd, timeZone: "Europe/Amsterdam" },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Kon geen afspraak aanmaken (${res.status}) ${detail}`.trim());
+  }
+
+  return (await res.json()) as { htmlLink?: string };
+}

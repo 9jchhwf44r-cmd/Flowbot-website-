@@ -8,13 +8,13 @@ export interface SiteSearchResult {
 }
 
 // Deze connector heeft geen externe koppeling nodig: hij doorzoekt de
-// inhoud van de eigen website (src/data/siteContent.ts) en is dus altijd "live".
+// persoonlijke kennisbank (src/data/siteContent.ts) en is dus altijd "live".
 export function describeSiteSearch(): ConnectorInfo {
   return {
     id: "site-search",
-    label: "Website doorzoeken",
+    label: "Kennisbank",
     status: "connected",
-    detail: "Actief — Tide kent de inhoud van talkwave.nl.",
+    detail: "Actief — Tide kan zijn eigen kennisbank doorzoeken.",
   };
 }
 

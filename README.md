@@ -1,21 +1,35 @@
 # Talkwave + Tide
 
-Website voor Talkwave (Next.js/TypeScript/Tailwind) met **Tide**: een
-spraakgestuurde AI-assistent ("Jarvis-stijl") die overal op de site
-bereikbaar is via de knop rechtsonder, of direct op `/tide`.
+Dit project bevat twee losse dingen in dezelfde codebase:
+
+1. **De Talkwave-website** (`src/app/page.tsx`) — de openbare marketingsite.
+   Nu nog een placeholder; de echte inhoud volgt apart.
+2. **Tide** (`/tide`) — jouw persoonlijke, spraakgestuurde AI-assistent
+   ("Jarvis-stijl"). Dit is **geen product dat aan bezoekers wordt
+   aangeboden** — er zit bewust geen link naar vanaf de openbare pagina's,
+   en de route zelf zit achter een wachtwoord.
 
 ## Starten
 
 ```bash
 npm install
+cp .env.example .env.local   # vul in wat je hebt, zie hieronder
 npm run dev
 ```
 
-Open http://localhost:3000. Tide zelf staat op http://localhost:3000/tide.
+Open http://localhost:3000 voor de (placeholder-)website, en
+http://localhost:3000/tide voor Tide — je krijgt eerst een
+wachtwoordscherm.
 
-Spraak (microfoon + gesproken antwoord) werkt via de browser's ingebouwde
-Web Speech API — dat werkt zonder verdere configuratie in Chrome/Edge.
-Typen kan altijd, in elke browser.
+## Tide bereiken en beveiligen
+
+- **`TIDE_PASSWORD`** is verplicht. Zonder deze env-variabele is `/tide`
+  voor niemand bereikbaar (fail closed) — er wordt dus nooit per ongeluk
+  een onbeveiligde versie live gezet.
+- Na inloggen zet de browser een cookie (30 dagen geldig); "Uitloggen" op
+  het Tide-scherm verwijdert die weer.
+- Er is bewust geen knop of link naar `/tide` op de openbare site. Bewaar
+  de URL zelf (bookmark 'm).
 
 ## Wat werkt er meteen, en wat moet je koppelen?
 
@@ -26,9 +40,10 @@ daarbuiten:
 | Functie | Werkt standaard? | Instellen via |
 | --- | --- | --- |
 | Tijd/datum, uitleg wat Tide kan | Ja | — |
-| Website doorzoeken | Ja | `src/data/siteContent.ts` bijwerken met echte teksten |
+| Eigen kennisbank doorzoeken | Ja | `src/data/siteContent.ts` |
 | Vrije AI-gesprekken | Nee | `ANTHROPIC_API_KEY` |
-| Google Agenda | Nee | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALENDAR_REFRESH_TOKEN` |
+| Agenda voorlezen | Nee | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALENDAR_REFRESH_TOKEN` |
+| Zelf afspraken inplannen ("plan morgen 14:00 een call") | Nee | dezelfde Google-koppeling, met schrijfrechten (zie hieronder) |
 | Magister-rooster | Nee | `MAGISTER_ICS_URL` |
 | Live internet doorzoeken | Nee | `BRAVE_SEARCH_API_KEY` |
 
@@ -37,6 +52,16 @@ koppeling die je invult, schakelt Tide automatisch aan. In de UI zie je
 rechtsboven op `/tide` welke koppelingen "gekoppeld" of "niet gekoppeld"
 zijn.
 
+### Zelf afspraken laten inplannen
+
+Zeg of typ bijvoorbeeld: *"plan morgen 14:00 een call met Jan"* of *"zet
+vrijdag 9u tandarts in mijn agenda"*. Tide herkent vandaag/morgen/
+overmorgen, weekdagnamen en tijden als `14:00`, `14u` of `14 uur`, en zet
+de afspraak (standaard 1 uur) in je Google Agenda.
+
+Dit vereist dat je Google OAuth-client de volledige `calendar`-scope heeft
+(niet `calendar.readonly`) — zie `.env.example` voor de exacte stappen.
+
 ### Over Magister
 
 Magister heeft geen officiële publieke API voor derden. In plaats van
@@ -44,32 +69,30 @@ inloggegevens te scrapen (onbetrouwbaar en mogelijk in strijd met de
 voorwaarden), gebruikt Tide de **officiële agenda-export** die Magister zelf
 aanbiedt: log in op Magister → Agenda → Extern gebruik/Abonneren, en
 kopieer de webcal/ICS-link naar `MAGISTER_ICS_URL`. Dezelfde koppeling werkt
-trouwens voor élke andere ICS-agenda (Outlook, Apple Agenda, etc.).
-
-### Over Google Agenda
-
-Er zit nog geen "Verbind met Google"-inlogknop in — dat kan een goede
-volgende stap zijn als dit eenmaal draait. Voor nu werkt het via een
-eenmalig handmatig verkregen refresh token (stappen staan in
-`.env.example`), zodat Tide zelf steeds een nieuw access token ophaalt.
+trouwens voor élke andere ICS-agenda (Outlook, Apple Agenda, etc).
 
 ## Architectuur
 
-- `src/app/page.tsx` — landingpagina Talkwave
+- `src/app/page.tsx` — placeholder-homepage voor talkwave.nl
 - `src/app/tide/page.tsx` — het volledige Tide-scherm (orb, spraak, chat)
+- `src/app/tide/login/page.tsx` — wachtwoordscherm
+- `src/middleware.ts` — beschermt `/tide/*` en `/api/tide/*`
+- `src/lib/tideAuth.ts` — sessie-cookie op basis van `TIDE_PASSWORD`
 - `src/hooks/useVoice.ts` — wrapper rond de browser Web Speech API
 - `src/lib/tideBrain.ts` — intentherkenning + AI-fallback
+- `src/lib/dutchSchedule.ts` — parser voor "plan ... afspraken"-zinnen
 - `src/lib/connectors/*` — één module per koppeling (agenda, Magister,
-  websearch, sitesearch), elk met een `describe*()` die aangeeft of hij
+  websearch, kennisbank), elk met een `describe*()` die aangeeft of hij
   gekoppeld is
 - `src/app/api/tide/chat` — praat met Tide's brein
 - `src/app/api/tide/connectors` — status van alle koppelingen voor de UI
+- `src/app/api/tide/auth` — login/logout
 
 ## Volgende stappen (suggesties)
 
-- Echte site-inhoud in `src/data/siteContent.ts` zetten zodat "doorzoek de
-  website" ook echt over Talkwave gaat.
 - Een "Verbind met Google"-OAuth-flow toevoegen i.p.v. handmatig refresh
   token invullen.
 - Een natuurlijkere stem koppelen (bv. ElevenLabs) in plaats van de
   browser-stem.
+- Eigen aantekeningen/notities toevoegen aan `src/data/siteContent.ts` zodat
+  Tide's kennisbank groeit.

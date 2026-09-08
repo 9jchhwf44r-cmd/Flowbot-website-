@@ -14,7 +14,7 @@ export function getAllConnectorInfo(): ConnectorInfo[] {
 }
 
 export * from "./types";
-export { getUpcomingGoogleEvents } from "./googleCalendar";
+export { getUpcomingGoogleEvents, createGoogleEvent } from "./googleCalendar";
 export { getUpcomingMagisterEvents, getUpcomingIcsEvents } from "./icsCalendar";
 export { searchSite } from "./siteSearch";
 export { searchWeb } from "./webSearch";

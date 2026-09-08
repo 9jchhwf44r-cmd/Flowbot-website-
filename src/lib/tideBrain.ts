@@ -1,11 +1,13 @@
 import {
   CalendarEvent,
+  createGoogleEvent,
   getUpcomingGoogleEvents,
   getUpcomingMagisterEvents,
   getAllConnectorInfo,
   searchSite,
   searchWeb,
 } from "@/lib/connectors";
+import { parseScheduleRequest } from "@/lib/dutchSchedule";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -72,9 +74,10 @@ async function callAnthropic(
       model,
       max_tokens: 512,
       system:
-        "Je bent Tide, de behulpzame Nederlandstalige AI-assistent van Talkwave " +
-        "(vergelijkbaar met Jarvis). Antwoord kort, vriendelijk en in het " +
-        "Nederlands, tenzij er in een andere taal tegen je gesproken wordt.",
+        "Je bent Tide, de persoonlijke Nederlandstalige AI-assistent van de " +
+        "gebruiker (vergelijkbaar met Jarvis uit Iron Man). Antwoord kort, " +
+        "vriendelijk en in het Nederlands, tenzij er in een andere taal tegen " +
+        "je gesproken wordt.",
       messages: [
         ...history.slice(-10).map((m) => ({
           role: m.role,
@@ -119,15 +122,39 @@ export async function respondTo(
       (c) => `- ${c.label}: ${c.status === "connected" ? "gekoppeld ✅" : "niet gekoppeld ⏳"}`
     );
     return (
-      "Ik ben Tide, de assistent van Talkwave. Ik kan onder andere:\n" +
+      "Ik ben Tide, jouw persoonlijke assistent. Ik kan onder andere:\n" +
       "- de tijd en datum vertellen\n" +
-      "- je agenda voorlezen\n" +
+      "- je agenda voorlezen én er afspraken in plannen (\"plan morgen 14:00 een call\")\n" +
       "- je Magister-rooster voorlezen\n" +
-      "- de website van Talkwave doorzoeken\n" +
+      "- mijn kennisbank doorzoeken\n" +
       "- (als gekoppeld) het internet doorzoeken\n\n" +
       "Status van mijn koppelingen:\n" +
       lines.join("\n")
     );
+  }
+
+  if (
+    matches(text, [
+      "plan ",
+      "plan een afspraak",
+      "maak een afspraak",
+      "zet ",
+      "voeg toe aan",
+      "regel een afspraak",
+      "boek ",
+    ])
+  ) {
+    const parsed = parseScheduleRequest(message);
+    if (!parsed) {
+      return (
+        "Ik heb geen tijdstip in je verzoek gevonden. Zeg bijvoorbeeld: " +
+        "\"plan morgen 14:00 een call met Jan\" of \"zet vrijdag 9u tandarts in mijn agenda\"."
+      );
+    }
+    return tryConnector(async () => {
+      await createGoogleEvent(parsed.title, parsed.isoLocal);
+      return `Gepland: "${parsed.title}" op ${parsed.label}.`;
+    }, "Ik kan nog geen afspraken aanmaken: Google Agenda is niet gekoppeld, of de koppeling heeft geen schrijfrechten (scope calendar i.p.v. calendar.readonly).");
   }
 
   if (matches(text, ["agenda", "afspraak", "afspraken", "planning"])) {
@@ -153,10 +180,10 @@ export async function respondTo(
     }, "Web zoeken is nog niet gekoppeld. Voeg een BRAVE_SEARCH_API_KEY toe om dit aan te zetten.");
   }
 
-  if (matches(text, ["website", "talkwave", "doorzoek"])) {
+  if (matches(text, ["doorzoek", "kennisbank"])) {
     const results = searchSite(text);
     if (results.length === 0) {
-      return "Ik kon niets relevants vinden op de website voor die vraag.";
+      return "Ik kon niets relevants vinden in mijn kennisbank voor die vraag.";
     }
     return results.map((r) => `- ${r.title}: ${r.snippet}`).join("\n");
   }
@@ -171,7 +198,8 @@ export async function respondTo(
 
   return (
     "Ik heb je nog geen volledig AI-brein: er is geen ANTHROPIC_API_KEY " +
-    "ingesteld. Vraag me ondertussen gerust naar de tijd, je agenda, je " +
-    "Magister-rooster of iets over de website — dat werkt al wel."
+    "ingesteld. Vraag me ondertussen gerust naar de tijd, je agenda, om iets " +
+    "in te plannen, je Magister-rooster, of iets uit mijn kennisbank — dat " +
+    "werkt al wel."
   );
 }

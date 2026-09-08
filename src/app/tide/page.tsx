@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useVoice } from "@/hooks/useVoice";
 
@@ -20,10 +21,11 @@ const QUICK_ACTIONS = [
   "Wat kun je?",
   "Hoe laat is het?",
   "Wat staat er in mijn agenda?",
-  "Doorzoek de website van Talkwave",
+  "Plan morgen 10:00 een call",
 ];
 
 export default function TidePage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -85,6 +87,12 @@ export default function TidePage() {
     sendMessage(input);
   }
 
+  async function handleLogout() {
+    await fetch("/api/tide/auth", { method: "DELETE" });
+    router.push("/tide/login");
+    router.refresh();
+  }
+
   const orbState = speaking ? "speaking" : listening ? "listening" : thinking ? "listening" : "idle";
   const statusText = speaking
     ? "Tide spreekt..."
@@ -104,20 +112,28 @@ export default function TidePage() {
           <span className="h-2 w-2 rounded-full bg-tide-accent" />
           Tide
         </div>
-        <div className="hidden gap-2 sm:flex">
-          {connectors.map((c) => (
-            <span
-              key={c.id}
-              title={c.detail}
-              className={`rounded-full px-3 py-1 text-xs ${
-                c.status === "connected"
-                  ? "bg-tide-accent/20 text-tide-accent"
-                  : "bg-white/5 text-white/40"
-              }`}
-            >
-              {c.label}
-            </span>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="hidden gap-2 sm:flex">
+            {connectors.map((c) => (
+              <span
+                key={c.id}
+                title={c.detail}
+                className={`rounded-full px-3 py-1 text-xs ${
+                  c.status === "connected"
+                    ? "bg-tide-accent/20 text-tide-accent"
+                    : "bg-white/5 text-white/40"
+                }`}
+              >
+                {c.label}
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={handleLogout}
+            className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/60 transition hover:border-white/40 hover:text-white"
+          >
+            Uitloggen
+          </button>
         </div>
       </header>
 
