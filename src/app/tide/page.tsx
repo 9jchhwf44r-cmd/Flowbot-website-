@@ -177,12 +177,21 @@ export default function TidePage() {
   const logRef = useRef<HTMLDivElement>(null);
   const mountedAtRef = useRef<number | null>(null);
 
-  const { supported, listening, speaking, transcript, startListening, stopListening, speak } =
-    useVoice({
-      onFinalResult: (text) => {
-        if (text) handleSendMessage(text);
-      },
-    });
+  const {
+    supported,
+    listening,
+    speaking,
+    transcribing,
+    transcript,
+    startListening,
+    stopListening,
+    speak,
+    primeSpeech,
+  } = useVoice({
+    onFinalResult: (text) => {
+      if (text) handleSendMessage(text);
+    },
+  });
 
   useEffect(() => {
     mountedAtRef.current = Date.now();
@@ -230,6 +239,10 @@ export default function TidePage() {
     const trimmed = text.trim();
     if (!trimmed) return;
 
+    // Moet synchroon binnen de gebruikersactie blijven (tik/klik), anders
+    // weigert Safari/iOS later geluid af te spelen voor het antwoord.
+    primeSpeech();
+
     const history = messages;
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
     setInput("");
@@ -274,9 +287,15 @@ export default function TidePage() {
     router.refresh();
   }
 
-  const orbState = speaking ? "speaking" : listening ? "listening" : thinking ? "listening" : "idle";
+  const orbState = speaking
+    ? "speaking"
+    : listening || transcribing || thinking
+    ? "listening"
+    : "idle";
   const statusText = speaking
     ? "TIDE SPREEKT"
+    : transcribing
+    ? "AUDIO HERKENNEN..."
     : listening
     ? "LUISTEREN..."
     : thinking
@@ -386,8 +405,8 @@ export default function TidePage() {
         <button
           type="button"
           onClick={listening ? stopListening : startListening}
-          disabled={!supported}
-          title={supported ? "Praat tegen Tide" : "Spraakherkenning wordt niet ondersteund in deze browser"}
+          disabled={!supported || transcribing}
+          title={supported ? "Praat tegen Tide" : "Microfoon niet beschikbaar in deze browser"}
           className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-full transition ${
             listening
               ? "bg-tide-accent text-tide-bg shadow-[0_0_40px_rgba(34,211,238,0.6)]"
@@ -398,7 +417,7 @@ export default function TidePage() {
         </button>
         {!supported && (
           <p className="mt-2 text-xs text-white/40">
-            Spraak wordt in deze browser niet ondersteund — gebruik Chrome of Edge.
+            Microfoon niet beschikbaar in deze browser — typ je vraag via &quot;nood: tekst&quot;.
           </p>
         )}
 
