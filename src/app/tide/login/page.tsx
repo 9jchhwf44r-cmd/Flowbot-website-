@@ -36,12 +36,19 @@ function LoginForm() {
   }
 
   return (
-    <main className="tide-theme flex min-h-screen flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm rounded-2xl bg-black/20 p-8">
-        <div className="mb-6 flex items-center justify-center gap-2 text-xl font-semibold">
-          <span className="h-2 w-2 rounded-full bg-tide-accent" />
-          Tide
+    <main className="tide-theme flex min-h-screen flex-col items-center justify-center px-6 font-mono">
+      <div className="relative w-full max-w-sm border border-tide-accent/20 bg-black/30 p-8">
+        <span className="hud-corner hud-corner-tl" />
+        <span className="hud-corner hud-corner-tr" />
+        <span className="hud-corner hud-corner-bl" />
+        <span className="hud-corner hud-corner-br" />
+        <div className="hud-text hud-glow mb-6 flex items-center justify-center gap-2 text-xl text-tide-accent">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-tide-accent" />
+          TIDE
         </div>
+        <p className="hud-text mb-6 text-center text-[10px] text-white/40">
+          identiteitscontrole vereist
+        </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="password"

@@ -18,6 +18,7 @@
   --color-tide-accent-2: var(--tide-accent-2);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-orbitron: var(--font-orbitron);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,11 +34,80 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Tide-scherm: bewust altijd donker, ongeacht systeemthema (Jarvis-gevoel) */
+/* Tide-scherm: bewust altijd donker, ongeacht systeemthema (Jarvis/HUD-gevoel) */
 .tide-theme {
-  background: radial-gradient(120% 120% at 50% 0%, var(--tide-bg-2) 0%, var(--tide-bg) 60%);
+  position: relative;
+  background:
+    radial-gradient(120% 120% at 50% 0%, var(--tide-bg-2) 0%, var(--tide-bg) 55%, #020509 100%);
   color: #e6f6fb;
+  overflow-x: hidden;
 }
+
+/* Fijn HUD-rasterpatroon + vignet, zoals een heads-up display */
+.tide-theme::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.07) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(80% 70% at 50% 35%, black 40%, transparent 100%);
+  z-index: 0;
+}
+
+/* Langzaam over het scherm glijdende scanlijn */
+.tide-theme::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  top: -140px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(34, 211, 238, 0.06),
+    transparent
+  );
+  animation: tide-scanline 7s linear infinite;
+  z-index: 0;
+}
+
+@keyframes tide-scanline {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(calc(100vh + 140px)); }
+}
+
+.tide-theme > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hud-text {
+  font-family: var(--font-orbitron), var(--font-sans), sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hud-glow {
+  text-shadow: 0 0 6px currentColor, 0 0 16px rgba(34, 211, 238, 0.5);
+}
+
+/* Vier hoek-accenten, als een viewfinder/HUD-kader om een paneel */
+.hud-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(34, 211, 238, 0.55);
+  pointer-events: none;
+}
+.hud-corner-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.hud-corner-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.hud-corner-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+.hud-corner-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
 @keyframes tide-pulse-idle {
   0%, 100% { transform: scale(1); opacity: 0.85; }
@@ -63,3 +133,9 @@ body {
 .tide-orb-listening { animation: tide-pulse-listening 0.9s ease-in-out infinite; }
 .tide-orb-speaking { animation: tide-pulse-speaking 0.6s ease-in-out infinite; }
 .tide-orb-ring { animation: tide-spin-slow 12s linear infinite; }
+
+@keyframes tide-spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+.tide-orb-ring-reverse { animation: tide-spin-reverse 18s linear infinite; }
