@@ -36,6 +36,18 @@ const TAGS = [
   "Persoonlijk afgestemd",
 ];
 
+const PARTICLES = [
+  { left: "8%", size: 5, delay: "0s", duration: "6.5s" },
+  { left: "18%", size: 3, delay: "1.2s", duration: "8s" },
+  { left: "27%", size: 6, delay: "2.4s", duration: "7s" },
+  { left: "39%", size: 4, delay: "0.6s", duration: "9s" },
+  { left: "52%", size: 3, delay: "3s", duration: "6s" },
+  { left: "64%", size: 5, delay: "1.8s", duration: "7.5s" },
+  { left: "73%", size: 4, delay: "0.3s", duration: "8.5s" },
+  { left: "85%", size: 6, delay: "2.1s", duration: "6.8s" },
+  { left: "93%", size: 3, delay: "3.6s", duration: "9.5s" },
+];
+
 export default function Home() {
   return (
     <main className="site-dark flex-1">
@@ -47,8 +59,22 @@ export default function Home() {
         <div className="blob blob-b absolute right-[-15%] top-[10%] h-[480px] w-[480px] bg-tide-accent-2/40" />
         <div className="blob blob-c absolute bottom-[-20%] left-[30%] h-[380px] w-[380px] bg-tide-accent-3/25" />
 
+        {PARTICLES.map((p, i) => (
+          <span
+            key={i}
+            className="particle absolute bottom-0 text-tide-accent"
+            style={{
+              left: p.left,
+              width: p.size,
+              height: p.size,
+              animationDelay: `${p.delay}, 0s`,
+              animationDuration: `${p.duration}, 5s`,
+            }}
+          />
+        ))}
+
         <div className="relative mx-auto flex max-w-4xl flex-col items-center text-center">
-          <span className="mb-6 rounded-full border border-tide-accent/30 bg-white/5 px-4 py-1 text-xs uppercase tracking-widest text-tide-accent">
+          <span className="hue-cycle mb-6 rounded-full border border-tide-accent/50 bg-white/5 px-4 py-1 text-xs uppercase tracking-widest text-tide-accent">
             Talkwave
           </span>
           <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
@@ -63,13 +89,13 @@ export default function Home() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <a
               href="#contact"
-              className="rounded-full bg-tide-accent px-8 py-3 font-semibold text-tide-bg transition hover:brightness-110"
+              className="btn-glow rounded-full bg-tide-accent px-8 py-3 font-semibold text-tide-bg transition hover:scale-105 hover:brightness-110"
             >
               Neem contact op
             </a>
             <a
               href="#diensten"
-              className="rounded-full border border-white/15 px-8 py-3 font-semibold text-white/80 transition hover:border-white/40 hover:text-white"
+              className="rounded-full border border-white/15 px-8 py-3 font-semibold text-white/80 transition hover:scale-105 hover:border-white/40 hover:text-white"
             >
               Bekijk wat we doen
             </a>
@@ -82,7 +108,7 @@ export default function Home() {
         <div className="hud-marquee inline-flex gap-12 whitespace-nowrap text-sm uppercase tracking-widest text-white/40">
           {[...TAGS, ...TAGS].map((tag, i) => (
             <span key={i} className="flex items-center gap-3">
-              <span className="h-1 w-1 rounded-full bg-tide-accent" />
+              <span className="hue-cycle h-1.5 w-1.5 rounded-full bg-tide-accent" />
               {tag}
             </span>
           ))}
@@ -99,7 +125,7 @@ export default function Home() {
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={i * 100}>
                 <div className="glass-card h-full rounded-2xl p-6">
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-tide-accent/30 text-tide-accent">
+                  <div className="icon-spin mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-tide-accent/30 text-tide-accent">
                     {i + 1}
                   </div>
                   <h3 className="text-lg font-semibold text-white">{f.title}</h3>
@@ -122,7 +148,7 @@ export default function Home() {
               <Reveal key={s.title} delay={i * 120} className="relative text-center">
                 <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center">
                   <div className="pulse-ring absolute inset-0 rounded-full" />
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-tide-accent to-tide-accent-2 font-semibold text-tide-bg">
+                  <div className="hue-cycle flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-tide-accent to-tide-accent-2 font-semibold text-tide-bg">
                     {i + 1}
                   </div>
                 </div>
@@ -147,7 +173,7 @@ export default function Home() {
               </p>
               <a
                 href="mailto:hallo@talkwave.nl"
-                className="mt-8 inline-block rounded-full bg-tide-accent px-8 py-3 font-semibold text-tide-bg transition hover:brightness-110"
+                className="btn-glow mt-8 inline-block rounded-full bg-tide-accent px-8 py-3 font-semibold text-tide-bg transition hover:scale-105 hover:brightness-110"
               >
                 hallo@talkwave.nl
               </a>
