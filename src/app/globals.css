@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b1220;
+  --tide-bg: #050b16;
+  --tide-bg-2: #0b1830;
+  --tide-accent: #22d3ee;
+  --tide-accent-2: #6366f1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-tide-bg: var(--tide-bg);
+  --color-tide-bg-2: var(--tide-bg-2);
+  --color-tide-accent: var(--tide-accent);
+  --color-tide-accent-2: var(--tide-accent-2);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Tide-scherm: bewust altijd donker, ongeacht systeemthema (Jarvis-gevoel) */
+.tide-theme {
+  background: radial-gradient(120% 120% at 50% 0%, var(--tide-bg-2) 0%, var(--tide-bg) 60%);
+  color: #e6f6fb;
+}
+
+@keyframes tide-pulse-idle {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
+@keyframes tide-pulse-listening {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@keyframes tide-pulse-speaking {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.08) rotate(3deg); }
+}
+
+@keyframes tide-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tide-orb-idle { animation: tide-pulse-idle 3.5s ease-in-out infinite; }
+.tide-orb-listening { animation: tide-pulse-listening 0.9s ease-in-out infinite; }
+.tide-orb-speaking { animation: tide-pulse-speaking 0.6s ease-in-out infinite; }
+.tide-orb-ring { animation: tide-spin-slow 12s linear infinite; }
