@@ -24,6 +24,50 @@ const QUICK_ACTIONS = [
   "Plan morgen 10:00 een call",
 ];
 
+function NodeLines({ className }: { className?: string }) {
+  const nodes = [
+    [10, 10],
+    [70, 25],
+    [30, 60],
+    [90, 70],
+    [55, 95],
+  ];
+  const edges = [
+    [0, 1],
+    [1, 2],
+    [0, 2],
+    [1, 3],
+    [2, 4],
+    [3, 4],
+  ];
+  return (
+    <svg viewBox="0 0 100 100" className={className} preserveAspectRatio="none">
+      {edges.map(([a, b], i) => (
+        <line
+          key={i}
+          x1={nodes[a][0]}
+          y1={nodes[a][1]}
+          x2={nodes[b][0]}
+          y2={nodes[b][1]}
+          stroke="rgba(34,211,238,0.35)"
+          strokeWidth="0.3"
+        />
+      ))}
+      {nodes.map(([x, y], i) => (
+        <circle
+          key={i}
+          cx={x}
+          cy={y}
+          r="1.4"
+          fill="rgba(34,211,238,0.6)"
+          className="hud-blip"
+          style={{ animationDelay: `${i * 0.4}s` }}
+        />
+      ))}
+    </svg>
+  );
+}
+
 function HudCorners() {
   return (
     <>
@@ -100,6 +144,14 @@ function ConnectorGauge({ c }: { c: ConnectorInfo }) {
   );
 }
 
+function formatUptime(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
 export default function TidePage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
@@ -112,14 +164,25 @@ export default function TidePage() {
   const [thinking, setThinking] = useState(false);
   const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
   const [manualOpen, setManualOpen] = useState(false);
+  const [uptime, setUptime] = useState(0);
+  const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
+  const mountedAtRef = useRef<number | null>(null);
 
   const { supported, listening, speaking, transcript, startListening, stopListening, speak } =
     useVoice({
       onFinalResult: (text) => {
-        if (text) sendMessage(text);
+        if (text) handleSendMessage(text);
       },
     });
+
+  useEffect(() => {
+    mountedAtRef.current = Date.now();
+    const id = setInterval(() => {
+      setUptime(Math.floor((Date.now() - (mountedAtRef.current ?? Date.now())) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     fetch("/api/tide/connectors")
@@ -132,7 +195,7 @@ export default function TidePage() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
 
-  async function sendMessage(text: string) {
+  async function handleSendMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
 
@@ -141,12 +204,16 @@ export default function TidePage() {
     setInput("");
     setThinking(true);
 
+    // eslint-disable-next-line react-hooks/purity -- only runs from event handlers, never during render
+    const startedAt = Date.now();
     try {
       const res = await fetch("/api/tide/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: trimmed, history }),
       });
+      // eslint-disable-next-line react-hooks/purity -- only runs from event handlers, never during render
+      setLastLatencyMs(Date.now() - startedAt);
       const data = await res.json();
       const reply: string = data.reply || data.error || "Daar kwam geen antwoord op.";
       setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
@@ -161,7 +228,7 @@ export default function TidePage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    sendMessage(input);
+    handleSendMessage(input);
   }
 
   async function handleLogout() {
@@ -181,6 +248,9 @@ export default function TidePage() {
 
   return (
     <main className="tide-theme flex min-h-screen flex-col font-mono">
+      <NodeLines className="pointer-events-none absolute left-0 top-0 h-40 w-40 opacity-60 sm:h-56 sm:w-56" />
+      <NodeLines className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rotate-180 opacity-60 sm:h-56 sm:w-56" />
+
       <header className="flex items-center justify-between px-6 py-4">
         <Link
           href="/"
@@ -190,7 +260,7 @@ export default function TidePage() {
         </Link>
         <div className="hud-text hud-glow flex items-center gap-2 text-lg text-tide-accent">
           <span className="h-2 w-2 animate-pulse rounded-full bg-tide-accent" />
-          TIDE
+          <span className="hud-flicker">TIDE</span>
         </div>
         <button
           onClick={handleLogout}
@@ -207,9 +277,22 @@ export default function TidePage() {
         ))}
       </div>
 
+      <div className="hud-text mx-auto mb-6 flex gap-6 text-[9px] text-white/35">
+        <span>
+          UPTIME <span className="text-tide-accent/70">{formatUptime(uptime)}</span>
+        </span>
+        <span>
+          LAT{" "}
+          <span className="text-tide-accent/70">
+            {lastLatencyMs === null ? "—" : `${lastLatencyMs}ms`}
+          </span>
+        </span>
+      </div>
+
       <div className="flex flex-1 flex-col items-center px-6 pb-6">
         <div className="relative my-8 flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
           <div className="tide-orb-ring-reverse absolute -inset-6 rounded-full border border-dotted border-tide-accent-2/25" />
+          <div className="tide-radar-sweep absolute inset-5" />
           <TickRing size={224} />
           <div className="tide-orb-ring absolute inset-5 rounded-full border border-dashed border-tide-accent/25" />
           <div
@@ -287,7 +370,7 @@ export default function TidePage() {
               {QUICK_ACTIONS.map((q) => (
                 <button
                   key={q}
-                  onClick={() => sendMessage(q)}
+                  onClick={() => handleSendMessage(q)}
                   className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/70 transition hover:border-tide-accent hover:text-tide-accent"
                 >
                   {q}

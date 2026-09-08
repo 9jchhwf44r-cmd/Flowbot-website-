@@ -139,3 +139,34 @@ body {
   to { transform: rotate(0deg); }
 }
 .tide-orb-ring-reverse { animation: tide-spin-reverse 18s linear infinite; }
+
+/* Radar-sweep: een ronddraaiende lichtwig binnen de ring-band rond de orb */
+.tide-radar-sweep {
+  animation: tide-spin-slow 4s linear infinite;
+  background: conic-gradient(
+    from 0deg,
+    rgba(34, 211, 238, 0.55),
+    rgba(34, 211, 238, 0.12) 6%,
+    transparent 16%,
+    transparent 100%
+  );
+  border-radius: 9999px;
+  -webkit-mask-image: radial-gradient(circle, transparent 58%, black 60%, black 100%);
+  mask-image: radial-gradient(circle, transparent 58%, black 60%, black 100%);
+}
+
+/* Subtiele hologram-flikkering op titel/labels */
+@keyframes tide-flicker {
+  0%, 92%, 100% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  95% { opacity: 0.5; }
+  96% { opacity: 1; }
+}
+.hud-flicker { animation: tide-flicker 6s ease-in-out infinite; }
+
+@keyframes tide-fade-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.hud-blip { animation: tide-fade-pulse 2.4s ease-in-out infinite; }
