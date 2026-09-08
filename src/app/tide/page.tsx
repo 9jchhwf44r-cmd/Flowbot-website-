@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useVoice } from "@/hooks/useVoice";
 import { Scene3DViewer } from "@/components/Scene3DViewer";
+import { DailyBriefing } from "@/components/DailyBriefing";
 import type { Scene3DData } from "@/lib/scene3d";
 
 interface Message {
@@ -170,6 +171,7 @@ export default function TidePage() {
   const [thinking, setThinking] = useState(false);
   const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
   const [manualOpen, setManualOpen] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(true);
   const [uptime, setUptime] = useState(0);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -324,6 +326,9 @@ export default function TidePage() {
         </span>
       </div>
 
+      {showBriefing ? (
+        <DailyBriefing onDismiss={() => setShowBriefing(false)} />
+      ) : (
       <div className="flex flex-1 flex-col items-center px-6 pb-6">
         <div className="relative my-8 flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
           <div className="tide-orb-ring-reverse absolute -inset-6 rounded-full border border-dotted border-tide-accent-2/25" />
@@ -434,6 +439,7 @@ export default function TidePage() {
           </div>
         )}
       </div>
+      )}
     </main>
   );
 }

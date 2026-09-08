@@ -170,3 +170,17 @@ body {
   50% { opacity: 1; }
 }
 .hud-blip { animation: tide-fade-pulse 2.4s ease-in-out infinite; }
+
+/* Nieuwsticker: naadloos scrollende rij (inhoud staat er dubbel in) */
+@keyframes tide-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.hud-marquee { animation: tide-marquee 28s linear infinite; }
+
+/* Grafiek "tekent zichzelf" bij het laden */
+@keyframes tide-reveal-width {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+.hud-reveal { animation: tide-reveal-width 1.4s ease-out forwards; }

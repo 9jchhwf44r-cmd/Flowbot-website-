@@ -47,6 +47,7 @@ daarbuiten:
 | Magister-rooster | Nee | `MAGISTER_ICS_URL` |
 | Live internet doorzoeken | Nee | `BRAVE_SEARCH_API_KEY` |
 | 3D-modellen genereren en tonen ("maak een 3D-model van...") | Nee | dezelfde `GEMINI_API_KEY` |
+| Dagelijkse briefing bij het opstarten (agenda, nieuws, Bitcoin-koers) | Gedeeltelijk | nieuws + koers werken direct (geen key nodig); agenda-onderdeel vereist Google-koppeling |
 
 Kopieer `.env.example` naar `.env.local` en vul in wat je hebt — elke
 koppeling die je invult, schakelt Tide automatisch aan. In de UI zie je
@@ -74,6 +75,16 @@ dezelfde HUD-stijl. Sleep met de muis om te draaien.
 Gemini's antwoord wordt altijd gesaniteerd voordat het gerenderd wordt
 (`src/lib/scene3d.ts`): alleen getallen, kleuren en een vaste lijst
 toegestane vormen worden gelezen, er wordt nooit code uitgevoerd.
+
+### Dagelijkse briefing
+
+Bij het openen van `/tide` verschijnt eerst een "dagelijkse briefing":
+een door Gemini geschreven samenvatting, je agenda van vandaag (als
+gekoppeld), een scrollende ticker met wereldnieuws (live via de publieke
+NOS-RSS-feed, `src/lib/connectors/news.ts`), en de actuele Bitcoin-koers met
+een animerende koersgrafiek (live via de publieke CoinGecko-API,
+`src/lib/connectors/crypto.ts`). Beide laatste werken direct, zonder
+API-key — klik op "ga verder" om naar het normale Tide-scherm te gaan.
 
 ### Over Magister
 

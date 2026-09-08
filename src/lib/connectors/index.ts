@@ -2,6 +2,8 @@ import { describeGoogleCalendar } from "./googleCalendar";
 import { describeMagister } from "./icsCalendar";
 import { describeSiteSearch } from "./siteSearch";
 import { describeWebSearch } from "./webSearch";
+import { describeNews } from "./news";
+import { describeCrypto } from "./crypto";
 import { ConnectorInfo } from "./types";
 
 export function getAllConnectorInfo(): ConnectorInfo[] {
@@ -10,6 +12,8 @@ export function getAllConnectorInfo(): ConnectorInfo[] {
     describeGoogleCalendar(),
     describeMagister(),
     describeWebSearch(),
+    describeNews(),
+    describeCrypto(),
   ];
 }
 
@@ -18,3 +22,7 @@ export { getUpcomingGoogleEvents, createGoogleEvent } from "./googleCalendar";
 export { getUpcomingMagisterEvents, getUpcomingIcsEvents } from "./icsCalendar";
 export { searchSite } from "./siteSearch";
 export { searchWeb } from "./webSearch";
+export { getLatestNews } from "./news";
+export type { NewsItem } from "./news";
+export { getBitcoinSnapshot } from "./crypto";
+export type { CryptoSnapshot } from "./crypto";
