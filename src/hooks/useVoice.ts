@@ -35,6 +35,7 @@ declare global {
 export interface UseVoiceOptions {
   lang?: string;
   onFinalResult?: (text: string) => void;
+  onError?: (message: string) => void;
 }
 
 function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | undefined {
@@ -63,7 +64,7 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-export function useVoice({ lang = "nl-NL", onFinalResult }: UseVoiceOptions = {}) {
+export function useVoice({ lang = "nl-NL", onFinalResult, onError }: UseVoiceOptions = {}) {
   // Chrome/Edge hebben ingebouwde spraakherkenning; Safari (met name iOS) niet.
   // Daar valt deze hook terug op zelf opnemen + laten transcriberen door Gemini.
   const [nativeSupported] = useState(() => Boolean(getSpeechRecognitionCtor()));
@@ -77,13 +78,15 @@ export function useVoice({ lang = "nl-NL", onFinalResult }: UseVoiceOptions = {}
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const onFinalResultRef = useRef(onFinalResult);
+  const onErrorRef = useRef(onError);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const speechPrimedRef = useRef(false);
 
   useEffect(() => {
     onFinalResultRef.current = onFinalResult;
-  }, [onFinalResult]);
+    onErrorRef.current = onError;
+  }, [onFinalResult, onError]);
 
   useEffect(() => {
     const Ctor = getSpeechRecognitionCtor();
@@ -158,13 +161,19 @@ export function useVoice({ lang = "nl-NL", onFinalResult }: UseVoiceOptions = {}
             body: JSON.stringify({ audioBase64, mimeType: recorder.mimeType || "audio/webm" }),
           });
           const data = await res.json();
+          if (!res.ok) {
+            onErrorRef.current?.(data.error || "Kon de opname niet laten transcriberen.");
+            return;
+          }
           const text: string = data.text || "";
           if (text) {
             setTranscript(text);
             onFinalResultRef.current?.(text.trim());
+          } else {
+            onErrorRef.current?.("Ik heb geen spraak in de opname herkend — probeer het nog eens.");
           }
         } catch {
-          // Netwerkfout: stil negeren, gebruiker kan het opnieuw proberen of typen.
+          onErrorRef.current?.("Kon niet verbinden om de opname te transcriberen.");
         } finally {
           setTranscribing(false);
         }
@@ -176,6 +185,7 @@ export function useVoice({ lang = "nl-NL", onFinalResult }: UseVoiceOptions = {}
       recorder.start();
     } catch {
       setListening(false);
+      onErrorRef.current?.("Geen toegang tot de microfoon — controleer je browser-/systeeminstellingen.");
     }
   }, []);
 

@@ -46,7 +46,17 @@ async function buildSummary(
   return fallback;
 }
 
+// De gratis Gemini-laag staat maar een handvol aanvragen per dag toe, gedeeld
+// over chat/3D/transcriptie/briefing. Zonder cache verbruikt elke keer dat je
+// Tide opent al een aanvraag voor niets — dus hergebruik de briefing even.
+const CACHE_TTL_MS = 20 * 60 * 1000;
+let cache: { data: unknown; expiresAt: number } | null = null;
+
 export async function GET() {
+  if (cache && Date.now() < cache.expiresAt) {
+    return NextResponse.json(cache.data);
+  }
+
   const [agendaResult, newsResult, cryptoResult] = await Promise.allSettled([
     getUpcomingGoogleEvents(5),
     getLatestNews(6),
@@ -59,11 +69,14 @@ export async function GET() {
 
   const summary = await buildSummary(agenda, news, crypto);
 
-  return NextResponse.json({
+  const data = {
     summary,
     agenda,
     news,
     crypto,
     agendaConnected: agendaResult.status === "fulfilled",
-  });
+  };
+  cache = { data, expiresAt: Date.now() + CACHE_TTL_MS };
+
+  return NextResponse.json(data);
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseScene3D, SCENE3D_SYSTEM_PROMPT } from "@/lib/scene3d";
+import { friendlyGeminiError } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      return NextResponse.json({ error: `Gemini gaf status ${res.status} terug` }, { status: 502 });
+      return NextResponse.json({ error: friendlyGeminiError(res.status) }, { status: 502 });
     }
 
     const data = (await res.json()) as {

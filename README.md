@@ -54,6 +54,18 @@ koppeling die je invult, schakelt Tide automatisch aan. In de UI zie je
 rechtsboven op `/tide` welke koppelingen "gekoppeld" of "niet gekoppeld"
 zijn.
 
+### Let op: gratis Gemini-limiet
+
+Het gratis tier van Gemini staat maar een klein aantal aanvragen per dag toe
+(op het moment van schrijven: 20/dag voor `gemini-3.6-flash`), **gedeeld**
+over alle Gemini-functies samen: vrije gesprekken, 3D-modellen, spraak-naar-
+tekst (op browsers zonder ingebouwde spraakherkenning, zoals Safari/iOS) én
+de dagelijkse briefing. Die laatste wordt 20 minuten gecachet om onnodig
+verbruik tegen te gaan, maar bij intensief gebruik loop je nog steeds tegen
+de limiet aan — Tide geeft dan een duidelijke melding ("gratis limiet
+bereikt, probeer morgen opnieuw"). Wil je dat niet, upgrade dan naar een
+betaald Gemini-abonnement via aistudio.google.com.
+
 ### Zelf afspraken laten inplannen
 
 Zeg of typ bijvoorbeeld: *"plan morgen 14:00 een call met Jan"* of *"zet
@@ -97,20 +109,28 @@ trouwens voor élke andere ICS-agenda (Outlook, Apple Agenda, etc).
 
 ## Architectuur
 
-- `src/app/page.tsx` — placeholder-homepage voor talkwave.nl
+- `src/app/page.tsx` — marketingpagina voor talkwave.nl
 - `src/app/tide/page.tsx` — het volledige Tide-scherm (orb, spraak, chat)
 - `src/app/tide/login/page.tsx` — wachtwoordscherm
-- `src/middleware.ts` — beschermt `/tide/*` en `/api/tide/*`
+- `src/proxy.ts` — beschermt `/tide/*` en `/api/tide/*` (Next.js' proxy-conventie,
+  vroeger "middleware" genoemd)
 - `src/lib/tideAuth.ts` — sessie-cookie op basis van `TIDE_PASSWORD`
-- `src/hooks/useVoice.ts` — wrapper rond de browser Web Speech API
+- `src/hooks/useVoice.ts` — wrapper rond de browser Web Speech API, met een
+  opname+transcriptie-fallback (via Gemini) voor browsers zonder ingebouwde
+  spraakherkenning, zoals Safari/iOS
 - `src/lib/tideBrain.ts` — intentherkenning + AI-fallback
 - `src/lib/dutchSchedule.ts` — parser voor "plan ... afspraken"-zinnen
+- `src/lib/scene3d.ts` + `src/components/Scene3DViewer.tsx` — 3D-modellen
+  genereren (gesaniteerde JSON-scene) en renderen (Three.js)
 - `src/lib/connectors/*` — één module per koppeling (agenda, Magister,
-  websearch, kennisbank), elk met een `describe*()` die aangeeft of hij
-  gekoppeld is
+  websearch, kennisbank, nieuws, koers), elk met een `describe*()` die
+  aangeeft of hij gekoppeld is
 - `src/app/api/tide/chat` — praat met Tide's brein
 - `src/app/api/tide/connectors` — status van alle koppelingen voor de UI
 - `src/app/api/tide/auth` — login/logout
+- `src/app/api/tide/transcribe` — audio-opname → tekst (Gemini)
+- `src/app/api/tide/scene3d` — 3D-scene genereren (Gemini)
+- `src/app/api/tide/briefing` — dagelijkse briefing (gecachet, zie hierboven)
 
 ## Volgende stappen (suggesties)
 

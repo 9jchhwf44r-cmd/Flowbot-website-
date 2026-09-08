@@ -1,3 +1,14 @@
+/** Zet een Gemini HTTP-foutstatus om in een begrijpelijke Nederlandse melding. */
+export function friendlyGeminiError(status: number): string {
+  if (status === 429) {
+    return "De gratis Gemini-limiet voor vandaag is bereikt. Probeer het morgen opnieuw, of zet een betaald Gemini-abonnement aan voor meer capaciteit.";
+  }
+  if (status === 503) {
+    return "Gemini is even overbelast. Probeer het over een paar seconden nog eens.";
+  }
+  return `Gemini gaf een onverwachte foutmelding terug (status ${status}).`;
+}
+
 /** Kleine, generieke (single-turn) Gemini-aanroep, los van Tide's meerturns-chat in tideBrain.ts. */
 export async function generateWithGemini(
   systemPrompt: string,
@@ -24,7 +35,7 @@ export async function generateWithGemini(
   );
 
   if (!res.ok) {
-    throw new Error(`Gemini API gaf status ${res.status} terug`);
+    throw new Error(friendlyGeminiError(res.status));
   }
 
   const data = (await res.json()) as {

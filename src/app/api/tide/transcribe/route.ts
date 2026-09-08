@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyGeminiError } from "@/lib/gemini";
 
 const TRANSCRIBE_PROMPT =
   "Transcribeer deze audio-opname naar tekst. Geef ALLEEN de letterlijke " +
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      return NextResponse.json({ error: `Gemini gaf status ${res.status} terug` }, { status: 502 });
+      return NextResponse.json({ error: friendlyGeminiError(res.status) }, { status: 502 });
     }
 
     const data = (await res.json()) as {

@@ -8,6 +8,7 @@ import {
   searchWeb,
 } from "@/lib/connectors";
 import { parseScheduleRequest } from "@/lib/dutchSchedule";
+import { friendlyGeminiError } from "@/lib/gemini";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -95,7 +96,7 @@ async function callGemini(
   );
 
   if (!res.ok) {
-    throw new Error(`Gemini API gaf status ${res.status} terug`);
+    throw new Error(friendlyGeminiError(res.status));
   }
 
   const data = (await res.json()) as {

@@ -191,6 +191,9 @@ export default function TidePage() {
     onFinalResult: (text) => {
       if (text) handleSendMessage(text);
     },
+    onError: (message) => {
+      setMessages((prev) => [...prev, { role: "assistant", text: message }]);
+    },
   });
 
   useEffect(() => {
