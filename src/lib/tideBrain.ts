@@ -54,49 +54,55 @@ async function tryConnector(
   }
 }
 
-async function callAnthropic(
+const SYSTEM_PROMPT =
+  "Je bent Tide, de persoonlijke Nederlandstalige AI-assistent van de " +
+  "gebruiker (vergelijkbaar met Jarvis uit Iron Man). Antwoord kort, " +
+  "vriendelijk en in het Nederlands, tenzij er in een andere taal tegen " +
+  "je gesproken wordt.";
+
+/**
+ * Gebruikt Google's gratis Gemini API-tier (aistudio.google.com) als AI-brein
+ * voor alles buiten de vaste commando's hierboven.
+ */
+async function callGemini(
   message: string,
   history: ChatMessage[]
 ): Promise<string | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 512,
-      system:
-        "Je bent Tide, de persoonlijke Nederlandstalige AI-assistent van de " +
-        "gebruiker (vergelijkbaar met Jarvis uit Iron Man). Antwoord kort, " +
-        "vriendelijk en in het Nederlands, tenzij er in een andere taal tegen " +
-        "je gesproken wordt.",
-      messages: [
-        ...history.slice(-10).map((m) => ({
-          role: m.role,
-          content: m.text,
-        })),
-        { role: "user", content: message },
-      ],
-    }),
-  });
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [
+          ...history.slice(-10).map((m) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.text }],
+          })),
+          { role: "user", parts: [{ text: message }] },
+        ],
+      }),
+    }
+  );
 
   if (!res.ok) {
-    throw new Error(`Anthropic API gaf status ${res.status} terug`);
+    throw new Error(`Gemini API gaf status ${res.status} terug`);
   }
 
   const data = (await res.json()) as {
-    content?: Array<{ type: string; text?: string }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
 
-  const text = data.content?.find((c) => c.type === "text")?.text;
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   return text || null;
 }
 
@@ -189,7 +195,7 @@ export async function respondTo(
   }
 
   try {
-    const aiReply = await callAnthropic(message, history);
+    const aiReply = await callGemini(message, history);
     if (aiReply) return aiReply;
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -197,7 +203,7 @@ export async function respondTo(
   }
 
   return (
-    "Ik heb je nog geen volledig AI-brein: er is geen ANTHROPIC_API_KEY " +
+    "Ik heb je nog geen volledig AI-brein: er is geen GEMINI_API_KEY " +
     "ingesteld. Vraag me ondertussen gerust naar de tijd, je agenda, om iets " +
     "in te plannen, je Magister-rooster, of iets uit mijn kennisbank — dat " +
     "werkt al wel."

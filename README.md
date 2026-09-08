@@ -41,7 +41,7 @@ daarbuiten:
 | --- | --- | --- |
 | Tijd/datum, uitleg wat Tide kan | Ja | — |
 | Eigen kennisbank doorzoeken | Ja | `src/data/siteContent.ts` |
-| Vrije AI-gesprekken | Nee | `ANTHROPIC_API_KEY` |
+| Vrije AI-gesprekken | Nee | `GEMINI_API_KEY` (gratis, zie .env.example) |
 | Agenda voorlezen | Nee | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALENDAR_REFRESH_TOKEN` |
 | Zelf afspraken inplannen ("plan morgen 14:00 een call") | Nee | dezelfde Google-koppeling, met schrijfrechten (zie hieronder) |
 | Magister-rooster | Nee | `MAGISTER_ICS_URL` |
