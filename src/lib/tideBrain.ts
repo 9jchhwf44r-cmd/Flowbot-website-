@@ -130,6 +130,8 @@ async function callAiBrain(
   message: string,
   history: ChatMessage[]
 ): Promise<string | null> {
+  let groqError: Error | undefined;
+
   if (isGroqConfigured()) {
     try {
       const combined: ChatMessage[] = [...history.slice(-10), { role: "user", text: message }];
@@ -139,12 +141,22 @@ async function callAiBrain(
       );
       if (reply) return reply;
     } catch (err) {
-      if (!process.env.GEMINI_API_KEY) throw err;
-      // val stil door naar Gemini hieronder
+      groqError = err instanceof Error ? err : new Error(String(err));
+      // Altijd loggen (zichtbaar in Netlify's function-logs), ook als Gemini
+      // hierna wél lukt — anders is een structureel Groq-probleem (bv. een
+      // verouderd modelnaam) onzichtbaar totdat ook Gemini's quotum op is.
+      console.error("Groq-aanroep mislukt, val terug op Gemini:", groqError.message);
+      if (!process.env.GEMINI_API_KEY) throw groqError;
     }
   }
 
-  return callGemini(message, history);
+  try {
+    return await callGemini(message, history);
+  } catch (err) {
+    if (!groqError) throw err;
+    const geminiMessage = err instanceof Error ? err.message : String(err);
+    throw new Error(`Groq: ${groqError.message} | Gemini: ${geminiMessage}`);
+  }
 }
 
 export async function respondTo(

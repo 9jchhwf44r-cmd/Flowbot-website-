@@ -4,14 +4,15 @@ export interface GroqChatMessage {
 }
 
 /** Zet een Groq HTTP-foutstatus om in een begrijpelijke Nederlandse melding. */
-export function friendlyGroqError(status: number): string {
+export function friendlyGroqError(status: number, detail?: string): string {
   if (status === 429) {
     return "De gratis Groq-limiet is even bereikt. Probeer het over een minuutje opnieuw.";
   }
   if (status === 503) {
     return "Groq is even overbelast. Probeer het over een paar seconden nog eens.";
   }
-  return `Groq gaf een onverwachte foutmelding terug (status ${status}).`;
+  const base = `Groq gaf een onverwachte foutmelding terug (status ${status}).`;
+  return detail ? `${base} ${detail}` : base;
 }
 
 export function isGroqConfigured(): boolean {
@@ -41,7 +42,8 @@ export async function chatWithGroq(
   });
 
   if (!res.ok) {
-    throw new Error(friendlyGroqError(res.status));
+    const body = await res.text().catch(() => "");
+    throw new Error(friendlyGroqError(res.status, body.slice(0, 300)));
   }
 
   const data = (await res.json()) as {
@@ -73,7 +75,8 @@ export async function transcribeWithGroq(
   });
 
   if (!res.ok) {
-    throw new Error(friendlyGroqError(res.status));
+    const body = await res.text().catch(() => "");
+    throw new Error(friendlyGroqError(res.status, body.slice(0, 300)));
   }
 
   const data = (await res.json()) as { text?: string };
