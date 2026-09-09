@@ -4,6 +4,9 @@ import {
   getUpcomingGoogleEvents,
   getUpcomingMagisterEvents,
   getAllConnectorInfo,
+  isGoogleCalendarConfigured,
+  isMagisterConfigured,
+  isWebSearchConfigured,
   searchSite,
   searchWeb,
 } from "@/lib/connectors";
@@ -44,15 +47,24 @@ function matches(text: string, keywords: string[]): boolean {
   return keywords.some((k) => text.includes(k));
 }
 
+/**
+ * Voert fn() alleen uit als de koppeling daadwerkelijk is ingesteld. Zo niet,
+ * dan krijgt de gebruiker de instructie om 'm in te stellen. Is de koppeling
+ * wél ingesteld maar mislukt de live aanroep (netwerkfout, koppeling
+ * tijdelijk onbereikbaar, etc.), dan krijgt de gebruiker een melding die dat
+ * duidelijk zegt — in plaats van de misleidende "nog niet gekoppeld"-tekst.
+ */
 async function tryConnector(
   fn: () => Promise<string>,
-  fallback: string
+  configured: boolean,
+  notConfiguredMessage: string
 ): Promise<string> {
+  if (!configured) return notConfiguredMessage;
   try {
     return await fn();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return `${fallback}\n\n(${message})`;
+    return `Er ging iets mis bij het ophalen, ook al is deze koppeling wel ingesteld: ${message}`;
   }
 }
 
@@ -187,15 +199,20 @@ export async function respondTo(
         "\"plan morgen 14:00 een call met Jan\" of \"zet vrijdag 9u tandarts in mijn agenda\"."
       );
     }
-    return tryConnector(async () => {
-      await createGoogleEvent(parsed.title, parsed.isoLocal);
-      return `Gepland: "${parsed.title}" op ${parsed.label}.`;
-    }, "Ik kan nog geen afspraken aanmaken: Google Agenda is niet gekoppeld, of de koppeling heeft geen schrijfrechten (scope calendar i.p.v. calendar.readonly).");
+    return tryConnector(
+      async () => {
+        await createGoogleEvent(parsed.title, parsed.isoLocal);
+        return `Gepland: "${parsed.title}" op ${parsed.label}.`;
+      },
+      isGoogleCalendarConfigured(),
+      "Ik kan nog geen afspraken aanmaken: Google Agenda is niet gekoppeld, of de koppeling heeft geen schrijfrechten (scope calendar i.p.v. calendar.readonly)."
+    );
   }
 
   if (matches(text, ["agenda", "afspraak", "afspraken", "planning"])) {
     return tryConnector(
       async () => `Dit staat er in je agenda:\n${formatEvents(await getUpcomingGoogleEvents())}`,
+      isGoogleCalendarConfigured(),
       "Je Google Agenda is nog niet gekoppeld. Vraag je beheerder om GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET en GOOGLE_CALENDAR_REFRESH_TOKEN in te stellen."
     );
   }
@@ -203,17 +220,22 @@ export async function respondTo(
   if (matches(text, ["magister", "rooster", "cijfers", "huiswerk"])) {
     return tryConnector(
       async () => `Dit staat er in je Magister-rooster:\n${formatEvents(await getUpcomingMagisterEvents())}`,
+      isMagisterConfigured(),
       "Magister is nog niet gekoppeld. Maak in Magister onder 'Agenda -> Extern gebruik' een iCal-link aan en zet die in MAGISTER_ICS_URL."
     );
   }
 
   if (matches(text, ["zoek op het web", "zoek online", "google het", "zoek op internet"])) {
     const query = text.replace(/zoek (op het web|online|op internet)( naar)?/g, "").trim() || text;
-    return tryConnector(async () => {
-      const results = await searchWeb(query);
-      if (results.length === 0) return "Ik vond niets op het web voor die vraag.";
-      return results.map((r) => `- ${r.title}: ${r.snippet} (${r.url})`).join("\n");
-    }, "Web zoeken is nog niet gekoppeld. Voeg een BRAVE_SEARCH_API_KEY toe om dit aan te zetten.");
+    return tryConnector(
+      async () => {
+        const results = await searchWeb(query);
+        if (results.length === 0) return "Ik vond niets op het web voor die vraag.";
+        return results.map((r) => `- ${r.title}: ${r.snippet} (${r.url})`).join("\n");
+      },
+      isWebSearchConfigured(),
+      "Web zoeken is nog niet gekoppeld. Voeg een BRAVE_SEARCH_API_KEY toe om dit aan te zetten."
+    );
   }
 
   if (matches(text, ["doorzoek", "kennisbank"])) {

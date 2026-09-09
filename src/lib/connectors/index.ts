@@ -18,10 +18,18 @@ export function getAllConnectorInfo(): ConnectorInfo[] {
 }
 
 export * from "./types";
-export { getUpcomingGoogleEvents, createGoogleEvent } from "./googleCalendar";
-export { getUpcomingMagisterEvents, getUpcomingIcsEvents } from "./icsCalendar";
+export {
+  getUpcomingGoogleEvents,
+  createGoogleEvent,
+  isGoogleCalendarConfigured,
+} from "./googleCalendar";
+export {
+  getUpcomingMagisterEvents,
+  getUpcomingIcsEvents,
+  isMagisterConfigured,
+} from "./icsCalendar";
 export { searchSite } from "./siteSearch";
-export { searchWeb } from "./webSearch";
+export { searchWeb, isWebSearchConfigured } from "./webSearch";
 export { getLatestNews } from "./news";
 export type { NewsItem } from "./news";
 export { getBitcoinSnapshot } from "./crypto";

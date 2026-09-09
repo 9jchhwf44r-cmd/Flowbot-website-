@@ -12,6 +12,10 @@ function isConfigured(): boolean {
   return Boolean(API_KEY);
 }
 
+export function isWebSearchConfigured(): boolean {
+  return isConfigured();
+}
+
 export function describeWebSearch(): ConnectorInfo {
   return {
     id: "web-search",

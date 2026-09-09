@@ -14,6 +14,10 @@ function isConfigured(): boolean {
   return Boolean(ICS_URL);
 }
 
+export function isMagisterConfigured(): boolean {
+  return isConfigured();
+}
+
 export function describeMagister(): ConnectorInfo {
   return {
     id: "magister",

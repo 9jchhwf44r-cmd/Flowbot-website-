@@ -9,6 +9,10 @@ function isConfigured(): boolean {
   return Boolean(CLIENT_ID && CLIENT_SECRET && REFRESH_TOKEN);
 }
 
+export function isGoogleCalendarConfigured(): boolean {
+  return isConfigured();
+}
+
 export function describeGoogleCalendar(): ConnectorInfo {
   return {
     id: "google-calendar",
