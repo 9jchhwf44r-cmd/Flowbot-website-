@@ -41,7 +41,7 @@ daarbuiten:
 | --- | --- | --- |
 | Tijd/datum, uitleg wat Tide kan | Ja | — |
 | Eigen kennisbank doorzoeken | Ja | `src/data/siteContent.ts` |
-| Vrije AI-gesprekken | Nee | `GEMINI_API_KEY` (gratis, zie .env.example) |
+| Vrije AI-gesprekken | Nee | `GROQ_API_KEY` (aanbevolen, ruim gratis quotum) of `GEMINI_API_KEY` |
 | Agenda voorlezen | Nee | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALENDAR_REFRESH_TOKEN` |
 | Zelf afspraken inplannen ("plan morgen 14:00 een call") | Nee | dezelfde Google-koppeling, met schrijfrechten (zie hieronder) |
 | Magister-rooster | Nee | `MAGISTER_ICS_URL` |
@@ -54,17 +54,21 @@ koppeling die je invult, schakelt Tide automatisch aan. In de UI zie je
 rechtsboven op `/tide` welke koppelingen "gekoppeld" of "niet gekoppeld"
 zijn.
 
-### Let op: gratis Gemini-limiet
+### Groq (aanbevolen) + Gemini-terugval
 
-Het gratis tier van Gemini staat maar een klein aantal aanvragen per dag toe
-(op het moment van schrijven: 20/dag voor `gemini-3.6-flash`), **gedeeld**
-over alle Gemini-functies samen: vrije gesprekken, 3D-modellen, spraak-naar-
-tekst (op browsers zonder ingebouwde spraakherkenning, zoals Safari/iOS) én
-de dagelijkse briefing. Die laatste wordt 20 minuten gecachet om onnodig
-verbruik tegen te gaan, maar bij intensief gebruik loop je nog steeds tegen
-de limiet aan — Tide geeft dan een duidelijke melding ("gratis limiet
-bereikt, probeer morgen opnieuw"). Wil je dat niet, upgrade dan naar een
-betaald Gemini-abonnement via aistudio.google.com.
+Gemini's gratis tier staat maar een klein aantal aanvragen per dag toe (op
+het moment van schrijven: 20/dag voor `gemini-3.6-flash`), **gedeeld** over
+alle Gemini-functies samen. Daarom probeert Tide voor vrije gesprekken en
+spraak-naar-tekst eerst **Groq** (`console.groq.com`, ook gratis, geen
+creditcard, veel ruimer quotum en erg snel) en valt pas op Gemini terug als
+Groq niet is ingesteld of zelf een keer vastloopt. Zet dus bij voorkeur
+zowel `GROQ_API_KEY` als `GEMINI_API_KEY` — dan heeft Tide altijd een
+werkende AI-motor.
+
+3D-modellen en de dagelijkse briefing gebruiken nog altijd Gemini (die
+laatste wordt 20 minuten gecachet om onnodig verbruik tegen te gaan). Bij
+een bereikte limiet geeft Tide een duidelijke Nederlandse melding in plaats
+van een cryptische foutcode.
 
 ### Zelf afspraken laten inplannen
 
@@ -118,7 +122,8 @@ trouwens voor élke andere ICS-agenda (Outlook, Apple Agenda, etc).
 - `src/hooks/useVoice.ts` — wrapper rond de browser Web Speech API, met een
   opname+transcriptie-fallback (via Gemini) voor browsers zonder ingebouwde
   spraakherkenning, zoals Safari/iOS
-- `src/lib/tideBrain.ts` — intentherkenning + AI-fallback
+- `src/lib/tideBrain.ts` — intentherkenning + AI-fallback (Groq eerst, Gemini als terugval)
+- `src/lib/groq.ts` — chat + Whisper-transcriptie via Groq
 - `src/lib/dutchSchedule.ts` — parser voor "plan ... afspraken"-zinnen
 - `src/lib/scene3d.ts` + `src/components/Scene3DViewer.tsx` — 3D-modellen
   genereren (gesaniteerde JSON-scene) en renderen (Three.js)

@@ -9,6 +9,7 @@ import {
 } from "@/lib/connectors";
 import { parseScheduleRequest } from "@/lib/dutchSchedule";
 import { friendlyGeminiError } from "@/lib/gemini";
+import { chatWithGroq, isGroqConfigured } from "@/lib/groq";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -107,6 +108,33 @@ async function callGemini(
   return text || null;
 }
 
+/**
+ * Groq heeft een veel ruimer gratis quotum dan Gemini, dus die proberen we
+ * eerst. Gemini blijft de terugval — als Groq niet is ingesteld of faalt
+ * (bv. quotum bereikt), valt Tide automatisch op Gemini terug in plaats van
+ * meteen op te geven.
+ */
+async function callAiBrain(
+  message: string,
+  history: ChatMessage[]
+): Promise<string | null> {
+  if (isGroqConfigured()) {
+    try {
+      const combined: ChatMessage[] = [...history.slice(-10), { role: "user", text: message }];
+      const reply = await chatWithGroq(
+        SYSTEM_PROMPT,
+        combined.map((m) => ({ role: m.role, content: m.text }))
+      );
+      if (reply) return reply;
+    } catch (err) {
+      if (!process.env.GEMINI_API_KEY) throw err;
+      // val stil door naar Gemini hieronder
+    }
+  }
+
+  return callGemini(message, history);
+}
+
 export async function respondTo(
   message: string,
   history: ChatMessage[] = []
@@ -197,7 +225,7 @@ export async function respondTo(
   }
 
   try {
-    const aiReply = await callGemini(message, history);
+    const aiReply = await callAiBrain(message, history);
     if (aiReply) return aiReply;
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -205,9 +233,9 @@ export async function respondTo(
   }
 
   return (
-    "Ik heb je nog geen volledig AI-brein: er is geen GEMINI_API_KEY " +
-    "ingesteld. Vraag me ondertussen gerust naar de tijd, je agenda, om iets " +
-    "in te plannen, je Magister-rooster, of iets uit mijn kennisbank — dat " +
-    "werkt al wel."
+    "Ik heb je nog geen volledig AI-brein: er is geen GROQ_API_KEY of " +
+    "GEMINI_API_KEY ingesteld. Vraag me ondertussen gerust naar de tijd, je " +
+    "agenda, om iets in te plannen, je Magister-rooster, of iets uit mijn " +
+    "kennisbank — dat werkt al wel."
   );
 }
