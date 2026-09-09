@@ -111,6 +111,28 @@ aanbiedt: log in op Magister → Agenda → Extern gebruik/Abonneren, en
 kopieer de webcal/ICS-link naar `MAGISTER_ICS_URL`. Dezelfde koppeling werkt
 trouwens voor élke andere ICS-agenda (Outlook, Apple Agenda, etc).
 
+## TalkWave Client OS (`/clientos.html`)
+
+Een intern beheerpaneel voor Talkwave's eigen klanten (niet te verwarren met
+Tide zelf): klanten aanmaken, per klant een AI-chat/website-generator/
+social-media-simulator/leadopvolging beheren. Zit achter **dezelfde
+wachtwoordbeveiliging als Tide** (`src/proxy.ts`) en is bewust nergens
+publiek gelinkt.
+
+- `public/clientos.html` — de volledige app (vanilla HTML/JS, geen React)
+- `src/app/api/clientos/store` — kleine key-value-opslag via **Netlify
+  Blobs** (gratis, werkt automatisch op Netlify; lokaal met `next dev`
+  zonder Netlify-context valt dit terug op een niet-persistente
+  in-memory store, alleen voor lokaal testen)
+- `src/app/api/clientos/ai` — vertaalt de Anthropic-vormige aanroepen uit
+  `clientos.html` naar Groq (dezelfde `GROQ_API_KEY`/`GROQ_MODEL` als Tide)
+  en geeft een Anthropic-vormig antwoord terug, inclusief tool-calling
+  (voor de reserverings-tool)
+- `src/app/api/clientos/analyze` — vervangt de "Analyseer website"-functie:
+  Groq heeft geen ingebouwde websearch-tool zoals Claude, dus deze route
+  haalt de opgegeven pagina zelf op en laat Groq die tekst analyseren
+  (geen bredere webzoekopdracht of externe reviews)
+
 ## Architectuur
 
 - `src/app/page.tsx` — marketingpagina voor talkwave.nl

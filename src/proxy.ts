@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { isValidSession, TIDE_SESSION_COOKIE } from "@/lib/tideAuth";
 
 export const config = {
-  matcher: ["/tide", "/tide/:path*", "/api/tide/:path*"],
+  matcher: [
+    "/tide",
+    "/tide/:path*",
+    "/api/tide/:path*",
+    "/clientos.html",
+    "/api/clientos/:path*",
+  ],
 };
 
 const PUBLIC_PATHS = new Set(["/tide/login", "/api/tide/auth"]);

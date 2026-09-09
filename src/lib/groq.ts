@@ -55,6 +55,63 @@ export async function chatWithGroq(
   return data.choices?.[0]?.message?.content || null;
 }
 
+export interface GroqCompletionMessage {
+  role: string;
+  content: string | null;
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
+  [key: string]: unknown;
+}
+
+export interface GroqCompletionResponse {
+  choices?: Array<{
+    message?: GroqCompletionMessage;
+    finish_reason?: string;
+  }>;
+}
+
+/**
+ * Losse, generieke chat-completion-aanroep (met optionele tool-calling) voor
+ * gevallen waar chatWithGroq() te beperkt is — bv. de TalkWave Client OS, die
+ * zelf zijn berichten/tools samenstelt en de ruwe response wil inspecteren.
+ */
+export async function groqChatCompletion(
+  messages: GroqCompletionMessage[],
+  options: { tools?: unknown[]; maxTokens?: number } = {}
+): Promise<GroqCompletionResponse> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY ontbreekt.");
+
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      ...(options.tools && options.tools.length > 0
+        ? { tools: options.tools, tool_choice: "auto" }
+        : {}),
+      ...(options.maxTokens ? { max_tokens: options.maxTokens } : {}),
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(friendlyGroqError(res.status, body.slice(0, 300)));
+  }
+
+  return res.json();
+}
+
 /** Spraak-naar-tekst via Groq's gehoste Whisper — doelgericht en snel. */
 export async function transcribeWithGroq(
   audioBuffer: Buffer,

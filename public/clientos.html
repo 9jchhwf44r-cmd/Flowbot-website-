@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TalkWave — Client OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07070c;
+    --bg-elev:#0e0e17;
+    --bg-elev2:#13131f;
+    --border:#1e1f2e;
+    --border-soft:#191a26;
+    --text:#f2f2f6;
+    --text-dim:#9393a6;
+    --text-dimmer:#5c5c70;
+    --blue:#5b7cfa;
+    --purple:#9457f5;
+    --grad:linear-gradient(90deg,#5b7cfa,#9457f5);
+    --green:#3ddc84;
+    --amber:#f5b95b;
+    --radius:14px;
+    --radius-sm:9px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:14px;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk',system-ui,sans-serif;margin:0;letter-spacing:-0.01em;}
+  ::selection{background:rgba(91,124,250,.35);}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+
+  #shell{display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  #sidebar{
+    width:246px;flex:none;background:var(--bg-elev);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+    padding:20px 14px;
+    overflow-x:hidden;
+  }
+  .logo{display:flex;align-items:baseline;gap:6px;padding:2px 6px 4px;white-space:nowrap;}
+  .logo b{font-family:'Space Grotesk';font-size:17px;font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .logo span{font-size:10.5px;color:var(--text-dimmer);}
+  .nav-group{margin-top:20px;}
+  .nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--text-dimmer);padding:0 10px;margin-bottom:7px;font-weight:600;}
+  .nav-item{
+    display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);
+    color:var(--text-dim);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:1px;
+    border:1px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .nav-item:hover{background:var(--bg-elev2);color:var(--text);}
+  .nav-item.active{background:var(--bg-elev2);color:var(--text);border-color:var(--border-soft);}
+  .nav-item .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+  .nav-item span:not(.dot){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .nav-icon{width:15px;text-align:center;opacity:.85;flex:none;}
+  .client-list{max-height:240px;overflow-y:auto;overflow-x:hidden;}
+  #sidebar-foot{margin-top:auto;padding:10px;border-top:1px solid var(--border-soft);font-size:10px;color:var(--text-dimmer);line-height:1.5;}
+
+  /* MAIN */
+  #main{flex:1;min-width:0;padding:34px 40px;max-width:1180px;}
+  .page-head{margin-bottom:24px;}
+  .page-head h1{font-size:22px;}
+  .page-head p{color:var(--text-dim);margin-top:5px;font-size:13.5px;}
+  .btn{
+    background:var(--bg-elev2);color:var(--text);border:1px solid var(--border);
+    padding:9px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;
+  }
+  .btn:hover{border-color:#31324a;}
+  .btn-primary{background:var(--grad);border:none;color:#0a0a12;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-danger{background:transparent;border:1px solid #3a1f24;color:#e88;}
+  .btn-ghost{background:transparent;border:1px solid var(--border);}
+  .row{display:flex;gap:10px;align-items:center;}
+
+  /* stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px;}
+  .stat-card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+  .stat-card .num{font-family:'Space Grotesk';font-size:26px;font-weight:700;}
+  .stat-card .lbl{color:var(--text-dim);font-size:12px;margin-top:2px;}
+
+  /* table */
+  .panel{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dimmer);padding:12px 16px;border-bottom:1px solid var(--border);}
+  td{padding:13px 16px;border-bottom:1px solid var(--border-soft);font-size:13.5px;}
+  tr:last-child td{border-bottom:none;}
+  tr.rowlink:hover{background:var(--bg-elev2);cursor:pointer;}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid var(--border);}
+  .badge-basic{color:var(--text-dim);}
+  .badge-business{color:#a9bafc;border-color:#31396b;background:rgba(91,124,250,.1);}
+  .badge-pro{color:#ecd9ff;border-color:#5a3b8c;background:linear-gradient(90deg,rgba(91,124,250,.14),rgba(148,87,245,.18));}
+  .empty{padding:50px 20px;text-align:center;color:var(--text-dimmer);}
+
+  /* form */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .field{margin-bottom:16px;}
+  .field.full{grid-column:1/-1;}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--text-dim);}
+  .hint{font-size:11.5px;color:var(--text-dimmer);margin-top:5px;}
+  input[type=text],input[type=email],input[type=tel],select,textarea{
+    width:100%;background:var(--bg-elev2);border:1px solid var(--border);color:var(--text);
+    padding:10px 12px;border-radius:var(--radius-sm);font-size:13.5px;outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+  textarea{resize:vertical;min-height:70px;}
+  .pkg-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .pkg-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 13px;cursor:pointer;}
+  .pkg-card b{display:block;font-size:14px;margin-bottom:3px;}
+  .pkg-card span{font-size:11.5px;color:var(--text-dim);}
+  .pkg-card.sel{border-color:var(--blue);background:rgba(91,124,250,.08);}
+  .form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;}
+
+  /* client detail */
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
+  .detail-head h1{font-size:23px;margin-bottom:6px;}
+  .detail-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:24px;align-items:start;}
+  .card-title{font-size:12.5px;font-weight:700;margin-bottom:13px;color:var(--text-dim);letter-spacing:.01em;}
+
+  /* chat */
+  .chat-card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .chat-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);}
+  .avatar{width:32px;height:32px;border-radius:9px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:700;color:#0a0a12;font-size:14px;flex:none;}
+  .chat-head .who b{display:block;font-size:13.5px;}
+  .chat-head .who .status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px;}
+  .chat-head .status .d{width:6px;height:6px;background:var(--green);border-radius:50%;}
+  #chatbody{height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+  .bubble{max-width:82%;padding:9px 13px;border-radius:12px;font-size:13.5px;line-height:1.45;}
+  .bubble.assistant{background:var(--bg-elev2);border:1px solid var(--border-soft);align-self:flex-start;border-bottom-left-radius:3px;}
+  .bubble.user{background:var(--grad);color:#0a0a12;font-weight:500;align-self:flex-end;border-bottom-right-radius:3px;}
+  .bubble.event{align-self:center;background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.3);color:#8fe6b4;font-size:12px;padding:6px 12px;}
+  .bubble.err{align-self:center;background:rgba(232,136,136,.08);border:1px solid rgba(232,136,136,.3);color:#e88;font-size:12px;}
+  .typing{align-self:flex-start;display:flex;gap:4px;padding:10px 13px;}
+  .typing span{width:5px;height:5px;background:var(--text-dimmer);border-radius:50%;animation:blink 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:.2s;}
+  .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);}
+  .chat-input input{flex:1;}
+  .chat-input button{background:var(--grad);border:none;color:#0a0a12;padding:0 16px;border-radius:var(--radius-sm);font-weight:700;font-size:13px;}
+  .chat-input button:disabled{opacity:.5;}
+  .suggest-row{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 12px;}
+  .suggest{font-size:11.5px;color:var(--text-dim);border:1px solid var(--border);padding:5px 10px;border-radius:99px;}
+  .suggest:hover{border-color:var(--blue);color:var(--text);}
+
+  .side-panel{display:flex;flex-direction:column;gap:20px;}
+
+  .tab-bar{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+  .tab-btn{padding:9px 14px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .tab-btn:hover{color:var(--text);}
+  .tab-btn.active{color:var(--text);border-bottom-color:var(--blue);}
+
+  .post-card{background:var(--bg-elev2);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:13px;margin-bottom:10px;font-size:13px;line-height:1.55;white-space:pre-wrap;}
+  .post-card .post-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+  .site-preview-wrap{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:#fff;height:480px;}
+  .site-preview-wrap iframe{width:100%;height:100%;border:none;}
+  .box{background:var(--bg-elev);border:1px solid var(--border-soft);border-radius:var(--radius);padding:18px;}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:7px 0;border-bottom:1px solid var(--border-soft);}
+  .kv:last-child{border-bottom:none;}
+  .kv span:first-child{color:var(--text-dimmer);flex:none;}
+  .kv span:last-child{text-align:right;color:var(--text);}
+  pre.embed{
+    background:#050508;border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:12px;font-size:12px;overflow-x:auto;color:#9fd3a3;white-space:pre-wrap;word-break:break-all;
+  }
+  .warn{font-size:11.5px;color:var(--amber);margin-top:10px;line-height:1.5;border-left:2px solid var(--amber);padding-left:9px;}
+  .analyze-summary{font-size:12.5px;color:var(--text-dim);line-height:1.6;background:rgba(61,220,132,.06);border:1px solid rgba(61,220,132,.25);border-radius:var(--radius-sm);padding:11px 13px;}
+  .analyze-summary b{color:var(--text);}
+  .analyze-summary ul{margin:6px 0 0 18px;padding:0;}
+  .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .report-block{border-radius:var(--radius-sm);padding:11px 13px;font-size:12.5px;line-height:1.6;border:1px solid var(--border);}
+  .report-block b{display:block;margin-bottom:6px;font-size:12.5px;}
+  .report-block ul{margin:0 0 0 16px;padding:0;color:var(--text-dim);}
+  .report-good{background:rgba(61,220,132,.06);border-color:rgba(61,220,132,.25);}
+  .report-good b{color:#7fe6a8;}
+  .report-bad{background:rgba(232,136,136,.06);border-color:rgba(232,136,136,.25);}
+  .report-bad b{color:#e88;}
+  .report-tech{background:rgba(245,185,91,.06);border-color:rgba(245,185,91,.25);}
+  .report-tech b{color:var(--amber);}
+  .report-idea{background:rgba(91,124,250,.06);border-color:rgba(91,124,250,.25);}
+  .report-idea b{color:#a9bafc;}
+  @media (max-width:880px){.report-grid{grid-template-columns:1fr;}}
+  .resv-item{padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:12.5px;}
+  .resv-item:last-child{border-bottom:none;}
+  .resv-item b{font-size:13px;}
+  .resv-item .meta{color:var(--text-dimmer);font-size:11.5px;margin-top:2px;}
+
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--bg-elev2);border:1px solid var(--border);padding:10px 16px;border-radius:var(--radius-sm);font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:50;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-box{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-width:360px;width:90%;box-shadow:0 20px 50px rgba(0,0,0,.5);}
+  .modal-msg{font-size:13.5px;line-height:1.5;margin-bottom:16px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;}
+
+  @media (max-width:880px){
+    #shell{flex-direction:column;}
+    #sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:14px;}
+    .client-list{display:none;}
+    #main{padding:20px;}
+    .form-grid,.detail-grid,.stat-grid,.pkg-choices{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="sidebar">
+    <div class="logo"><b>TALKWAVE</b><span>Client OS</span></div>
+    <div class="nav-group">
+      <div class="nav-item" id="nav-dashboard" onclick="go('dashboard')"><span class="nav-icon">▦</span> Dashboard</div>
+      <div class="nav-item" id="nav-intake" onclick="go('intake')"><span class="nav-icon">＋</span> Nieuwe klant</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Klanten</div>
+      <div class="client-list" id="client-nav-list"></div>
+    </div>
+    <div id="sidebar-foot">Klantgegevens &amp; reserveringen staan in Netlify Blobs, alleen bereikbaar via dit wachtwoord-beveiligde beheerpaneel.</div>
+  </div>
+  <div id="main"></div>
+</div>
+
+<script>
+/* ---------- state ---------- */
+const state = { view:'dashboard', clientId:null, clients:{}, clientIds:[], chat:{}, social:{}, posts:{}, website:{}, followup:{}, detailTab:{} };
+
+const PACKAGES = {
+  basic:    { label:'Basic',    canReserve:false, canSocialReply:false, canSocialPosts:false, canFollowup:false, cls:'badge-basic'    },
+  business: { label:'Business', canReserve:true,  canSocialReply:true,  canSocialPosts:false, canFollowup:false, cls:'badge-business' },
+  pro:      { label:'Pro',      canReserve:true,  canSocialReply:true,  canSocialPosts:true,  canFollowup:true,  cls:'badge-pro'      }
+};
+
+function genId(){ return 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2600);
+}
+
+/* ---------- storage helpers ----------
+   Origineel gebruikte window.storage (alleen beschikbaar binnen Claude-
+   artifacts). Hier vervangen door fetches naar /api/clientos/store, dat
+   server-side Netlify Blobs gebruikt — werkt op de echte site, achter het
+   Tide-wachtwoord. */
+async function safeGet(key){
+  try{
+    const res = await fetch('/api/clientos/store?key=' + encodeURIComponent(key));
+    const data = await res.json();
+    return (data && data.value != null) ? data.value : null;
+  }catch(e){ return null; }
+}
+async function safeSet(key, value){
+  try{
+    const res = await fetch('/api/clientos/store', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ key, value })
+    });
+    return await res.json();
+  }catch(e){ console.error('storage set failed', e); return null; }
+}
+
+async function loadClientIndex(){
+  const raw = await safeGet('clients-index', true);
+  state.clientIds = raw ? JSON.parse(raw) : [];
+}
+async function loadClient(id){
+  if(state.clients[id]) return state.clients[id];
+  const raw = await safeGet('client:'+id, true);
+  if(!raw) return null;
+  const c = JSON.parse(raw);
+  state.clients[id] = c;
+  return c;
+}
+async function loadAllClients(){
+  await loadClientIndex();
+  await Promise.all(state.clientIds.map(loadClient));
+}
+async function saveClient(c){
+  await safeSet('client:'+c.id, JSON.stringify(c), true);
+  state.clients[c.id] = c;
+  if(!state.clientIds.includes(c.id)){
+    state.clientIds.unshift(c.id);
+    await safeSet('clients-index', JSON.stringify(state.clientIds), true);
+  }
+}
+async function deleteClient(id){
+  try{
+    await fetch('/api/clientos/store?key=' + encodeURIComponent('client:'+id), { method:'DELETE' });
+  }catch(e){}
+  state.clientIds = state.clientIds.filter(x=>x!==id);
+  delete state.clients[id];
+  await safeSet('clients-index', JSON.stringify(state.clientIds));
+}
+
+async function loadReservationIndex(clientId){
+  const raw = await safeGet('res-index:'+clientId, true);
+  return raw ? JSON.parse(raw) : [];
+}
+async function loadReservations(clientId){
+  const ids = await loadReservationIndex(clientId);
+  const items = await Promise.all(ids.map(async id=>{
+    const raw = await safeGet('reservation:'+id, true);
+    return raw ? JSON.parse(raw) : null;
+  }));
+  return items.filter(Boolean).sort((a,b)=> b.createdAt - a.createdAt);
+}
+async function saveReservation(clientId, data){
+  const id = 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  const rec = { id, clientId, ...data, createdAt: Date.now() };
+  await safeSet('reservation:'+id, JSON.stringify(rec), true);
+  const idx = await loadReservationIndex(clientId);
+  idx.unshift(id);
+  await safeSet('res-index:'+clientId, JSON.stringify(idx), true);
+  return rec;
+}
+
+/* ---------- routing / render ---------- */
+async function go(view, id){
+  state.view = view;
+  state.clientId = id || null;
+  await render();
+}
+window.go = go;
+
+async function render(){
+  await renderSidebar();
+  const main = document.getElementById('main');
+  if(state.view==='dashboard') return renderDashboard(main);
+  if(state.view==='intake') return renderIntake(main);
+  if(state.view==='client') return renderClientDetail(main, state.clientId);
+}
+
+async function renderSidebar(){
+  document.getElementById('nav-dashboard').className = 'nav-item' + (state.view==='dashboard'?' active':'');
+  document.getElementById('nav-intake').className = 'nav-item' + (state.view==='intake'?' active':'');
+  const list = document.getElementById('client-nav-list');
+  if(state.clientIds.length===0){ list.innerHTML=''; return; }
+  list.innerHTML = state.clientIds.map(id=>{
+    const c = state.clients[id]; if(!c) return '';
+    const pkg = PACKAGES[c.package];
+    const dotColor = c.package==='pro' ? 'var(--purple)' : c.package==='business' ? 'var(--blue)' : 'var(--text-dimmer)';
+    const active = (state.view==='client' && state.clientId===id) ? ' active' : '';
+    return `<div class="nav-item${active}" onclick="go('client','${id}')">
+      <span class="dot" style="background:${dotColor}"></span> ${esc(c.name)}
+    </div>`;
+  }).join('');
+}
+
+/* ---------- DASHBOARD ---------- */
+async function renderDashboard(main){
+  main.innerHTML = `<div class="page-head"><h1>Dashboard</h1><p>Overzicht van alle klanten en hun AI-assistent.</p></div>
+  <div id="stat-grid" class="stat-grid"></div>
+  <div class="panel"><div id="client-table"></div></div>`;
+
+  const counts = { basic:0, business:0, pro:0 };
+  let totalRes = 0;
+  for(const id of state.clientIds){
+    const c = state.clients[id]; if(!c) continue;
+    counts[c.package] = (counts[c.package]||0)+1;
+    totalRes += (await loadReservationIndex(id)).length;
+  }
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="num">${state.clientIds.length}</div><div class="lbl">Klanten totaal</div></div>
+    <div class="stat-card"><div class="num">${counts.business||0}+${counts.pro||0}</div><div class="lbl">Business / Pro klanten</div></div>
+    <div class="stat-card"><div class="num">${totalRes}</div><div class="lbl">Reserveringen via AI</div></div>
+    <div class="stat-card"><div class="num">${counts.basic||0}</div><div class="lbl">Basic klanten</div></div>`;
+
+  const rows = state.clientIds.map(id=>state.clients[id]).filter(Boolean);
+  const tableDiv = document.getElementById('client-table');
+  if(rows.length===0){
+    tableDiv.innerHTML = `<div class="empty">Nog geen klanten. <a href="#" onclick="go('intake');return false;" style="color:var(--blue)">Voeg je eerste klant toe →</a></div>`;
+    return;
+  }
+  let html = `<table><thead><tr><th>Bedrijf</th><th>Sector</th><th>Pakket</th><th>Reserveren</th><th>Toegevoegd</th></tr></thead><tbody>`;
+  for(const c of rows){
+    const pkg = PACKAGES[c.package];
+    const resCount = (await loadReservationIndex(c.id)).length;
+    html += `<tr class="rowlink" onclick="go('client','${c.id}')">
+      <td><b>${esc(c.name)}</b></td>
+      <td style="color:var(--text-dim)">${esc(c.sector||'—')}</td>
+      <td><span class="badge ${pkg.cls}">${pkg.label}</span></td>
+      <td>${pkg.canReserve ? `${resCount} geplaatst` : '<span style="color:var(--text-dimmer)">niet in pakket</span>'}</td>
+      <td style="color:var(--text-dimmer)">${new Date(c.createdAt).toLocaleDateString('nl-NL')}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  tableDiv.innerHTML = html;
+}
+
+/* ---------- INTAKE ---------- */
+const EXAMPLE = {
+  name:'Watersportcentrum Brielle',
+  sector:'Watersport & verhuur',
+  package:'business',
+  website:'https://wscb.nl',
+  description:'Watersportcentrum aan de noordoever van het Brielse Meer, naast het voet-/fietsveer (Geuzenveer). Verhuur van motorboten, kayaks, kano\'s, SUP-boards en e-bikes, plus waterski- en wakeboardlessen. Gezellig terras aan het water. Geen vaarbewijs nodig, huisdieren toegestaan, gratis parkeren.',
+  services:`Waterski / wakeboardles - vanaf €145 per uur
+Motorboot verhuur - vanaf €85 per halve dag
+SUP / kano / kayak verhuur - vanaf €15 per uur
+E-bike verhuur - vanaf €35 per dag
+Evenementen / feestjes - in overleg`,
+  hours:'April & september: zaterdag, zondag en feestdagen 9:30–17:30 uur. In het hoofdseizoen gelden ruimere tijden — voor de actuele tijden vandaag altijd even navragen/verwijzen naar contact.',
+  address:'Brielse Veerweg 3, 3231 NA Brielle',
+  phone:'06 18213220',
+  email:'info@watersportcentrumbrielle.nl',
+  extra:'Toon: relaxed, gastvrij, een beetje enthousiast over het water — geen stijve zakelijke taal. Noem dat er geen vaarbewijs nodig is als dat relevant is. Bij twijfel over exacte openingstijden of beschikbaarheid: eerlijk zeggen dat je dat niet zeker weet en doorverwijzen naar telefoon/WhatsApp.'
+};
+
+function renderIntake(main){
+  main.innerHTML = `
+  <div class="page-head">
+    <h1>Nieuwe klant</h1>
+    <p>Vul de bedrijfsinfo in — hieruit bouwt het systeem automatisch de AI-assistent en de embedcode.</p>
+  </div>
+  <div class="panel" style="padding:22px;">
+    <div class="box" style="margin-bottom:18px;border-color:#31396b;">
+      <div class="card-title">🔎 Automatisch invullen met AI</div>
+      <div class="row">
+        <input type="text" id="analyze-url" placeholder="https://website-van-de-klant.nl">
+        <button type="button" class="btn btn-primary" id="analyze-btn" onclick="handleAnalyzeUrl()">Analyseer website →</button>
+      </div>
+      <div id="analyze-result" style="margin-top:10px"></div>
+      <div class="hint" style="margin-top:8px">De AI leest de opgegeven pagina (niet het bredere web of externe reviews) en vult het formulier hieronder in. Controleer alles even voordat je de klant aanmaakt — de AI kan dingen missen of verkeerd interpreteren.</div>
+    </div>
+    <div class="row" style="margin-bottom:18px;">
+      <button type="button" class="btn btn-ghost" onclick="fillExample()">Of: voorbeeld invullen (Watersportcentrum Brielle)</button>
+    </div>
+    <form id="intake-form">
+      <div class="form-grid">
+        <div class="field"><label>Bedrijfsnaam *</label><input type="text" id="f-name"></div>
+        <div class="field"><label>Sector</label><input type="text" id="f-sector" placeholder="bijv. Restaurant, Makelaardij, Watersport"></div>
+        <div class="field full"><label>Website (optioneel)</label><input type="text" id="f-website" placeholder="https://..."></div>
+        <div class="field full">
+          <label>Pakket *</label>
+          <div class="pkg-choices" id="pkg-choices">
+            ${Object.entries(PACKAGES).map(([k,p])=>`
+              <div class="pkg-card" data-pkg="${k}" onclick="selectPkg('${k}')">
+                <b>${p.label}</b>
+                <span>${k==='basic' ? 'AI-chatbot die vragen beantwoordt' : k==='business' ? "Chatbot + social media reacties (DM's) + e-mailleads" : 'Alles van Business + social media posts + meertalig + automatische leadopvolging'}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="field full">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="toggleWebsiteAddon()">
+            <input type="checkbox" id="f-website-addon" style="width:auto;" onclick="event.stopPropagation()">
+            <span>Extra: nieuwe website erbij (los van het pakket)</span>
+          </label>
+          <div class="hint" id="website-addon-price" style="margin-top:5px;">Website + Basic: €850 eenmalig · Website + Pro: €1.150 eenmalig — conform de prijzen op talkwave.nl</div>
+        </div>
+        <div class="field full"><label>Korte omschrijving van het bedrijf</label><textarea id="f-desc" placeholder="Waar staat dit bedrijf voor, wat maakt het bijzonder..."></textarea></div>
+        <div class="field full"><label>Diensten &amp; prijzen (één per regel)</label><textarea id="f-services" placeholder="Dienst - prijs"></textarea></div>
+        <div class="field"><label>Openingstijden</label><textarea id="f-hours"></textarea></div>
+        <div class="field"><label>Adres</label><textarea id="f-address"></textarea></div>
+        <div class="field"><label>Telefoon / WhatsApp</label><input type="text" id="f-phone"></div>
+        <div class="field"><label>E-mail</label><input type="text" id="f-email"></div>
+        <div class="field full"><label>Extra instructies voor de AI (toon, uitzonderingen, dingen om altijd te noemen)</label><textarea id="f-extra"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="go('dashboard')">Annuleren</button>
+        <button type="button" class="btn btn-primary" onclick="handleCreateClient()">Klant aanmaken →</button>
+      </div>
+    </form>
+  </div>`;
+  selectPkg('business');
+  document.getElementById('intake-form').addEventListener('submit', e=>e.preventDefault());
+}
+
+function selectPkg(key){
+  window._selectedPkg = key;
+  document.querySelectorAll('.pkg-card').forEach(el=>{
+    el.classList.toggle('sel', el.dataset.pkg===key);
+  });
+  updateWebsiteAddonHint();
+}
+window.selectPkg = selectPkg;
+
+function toggleWebsiteAddon(){
+  const box = document.getElementById('f-website-addon');
+  box.checked = !box.checked;
+  updateWebsiteAddonHint();
+}
+window.toggleWebsiteAddon = toggleWebsiteAddon;
+
+function updateWebsiteAddonHint(){
+  const hint = document.getElementById('website-addon-price');
+  if(!hint) return;
+  const pkg = window._selectedPkg || 'business';
+  const price = pkg==='pro' ? 'Website + Pro: €1.150 eenmalig' : pkg==='basic' ? 'Website + Basic: €850 eenmalig' : 'Website + Business: prijs in overleg (site vermeldt alleen Basic/Pro-varianten)';
+  hint.textContent = price + ' — conform de prijzen op talkwave.nl';
+}
+
+function fillExample(){
+  document.getElementById('f-name').value = EXAMPLE.name;
+  document.getElementById('f-sector').value = EXAMPLE.sector;
+  document.getElementById('f-website').value = EXAMPLE.website;
+  document.getElementById('f-desc').value = EXAMPLE.description;
+  document.getElementById('f-services').value = EXAMPLE.services;
+  document.getElementById('f-hours').value = EXAMPLE.hours;
+  document.getElementById('f-address').value = EXAMPLE.address;
+  document.getElementById('f-phone').value = EXAMPLE.phone;
+  document.getElementById('f-email').value = EXAMPLE.email;
+  document.getElementById('f-extra').value = EXAMPLE.extra;
+  selectPkg(EXAMPLE.package);
+}
+window.fillExample = fillExample;
+
+async function handleAnalyzeUrl(){
+  const urlInput = document.getElementById('analyze-url');
+  const url = urlInput.value.trim();
+  if(!url){ toast('Vul een website-URL in'); urlInput.focus(); return; }
+  const btn = document.getElementById('analyze-btn');
+  const resultBox = document.getElementById('analyze-result');
+  btn.disabled = true; btn.textContent = 'Bezig met analyseren...';
+  resultBox.innerHTML = `<div class="hint">De AI haalt de opgegeven pagina op en stelt op basis daarvan een analyse op — dit kan 10–30 seconden duren...</div>`;
+  try{
+    const res = await withTimeout(fetch('/api/clientos/analyze', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url })
+    }), 50000);
+    const parsed = await res.json();
+    if(!res.ok) throw new Error(parsed.error || 'Analyse mislukt');
+
+    document.getElementById('f-name').value = parsed.name || '';
+    document.getElementById('f-sector').value = parsed.sector || '';
+    document.getElementById('f-website').value = url;
+    document.getElementById('f-desc').value = parsed.description || '';
+    document.getElementById('f-services').value = parsed.services || '';
+    document.getElementById('f-hours').value = parsed.hours || '';
+    document.getElementById('f-address').value = parsed.address || '';
+    document.getElementById('f-phone').value = parsed.phone || '';
+    document.getElementById('f-email').value = parsed.email || '';
+
+    const list = (title, items, cls) => (Array.isArray(items) && items.length)
+      ? `<div class="report-block ${cls}"><b>${title}</b><ul>${items.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>` : '';
+
+    resultBox.innerHTML = `
+      <div class="analyze-summary" style="margin-bottom:10px;">${esc(parsed.summary||'')}</div>
+      <div class="report-grid">
+        ${list('✓ Sterke punten huidige website', parsed.sterke_punten, 'report-good')}
+        ${list('✗ Zwakke punten / gemiste kansen', parsed.zwakke_punten, 'report-bad')}
+        ${list('⚙ Technische observaties', parsed.technische_observaties, 'report-tech')}
+        ${list('💡 Kansen voor AI-automatisering', parsed.opportunities, 'report-idea')}
+      </div>
+      <div class="hint" style="margin-top:8px">Deze analyse is gebaseerd op het doorlezen van de opgegeven pagina zelf — geen bredere webzoekopdracht, geen externe reviews, en geen geautomatiseerde technische audit (dus geen broken-link-scan of paginasnelheidstest).</div>`;
+    toast('Formulier automatisch ingevuld — controleer voordat je aanmaakt');
+  }catch(err){
+    console.error('Website-analyse mislukt:', err);
+    resultBox.innerHTML = `<div class="hint" style="color:#e88">Analyse mislukt (${esc(err.message||'onbekende fout')}). Vul het formulier handmatig in of probeer het nog eens.</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Analyseer website →';
+  }
+}
+window.handleAnalyzeUrl = handleAnalyzeUrl;
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject)=> setTimeout(()=> reject(new Error('timeout na '+ms+'ms')), ms))
+  ]);
+}
+
+async function handleCreateClient(){
+  const btn = document.querySelector('#intake-form .btn-primary');
+  try{
+    const name = document.getElementById('f-name').value.trim();
+    if(!name){ toast('Vul minimaal een bedrijfsnaam in'); document.getElementById('f-name').focus(); return; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Bezig...'; }
+    const c = {
+      id: genId(),
+      name,
+      sector: document.getElementById('f-sector').value.trim(),
+      website: document.getElementById('f-website').value.trim(),
+      package: window._selectedPkg || 'business',
+      websiteAddon: !!document.getElementById('f-website-addon').checked,
+      description: document.getElementById('f-desc').value.trim(),
+      services: document.getElementById('f-services').value.trim(),
+      hours: document.getElementById('f-hours').value.trim(),
+      address: document.getElementById('f-address').value.trim(),
+      phone: document.getElementById('f-phone').value.trim(),
+      email: document.getElementById('f-email').value.trim(),
+      extra: document.getElementById('f-extra').value.trim(),
+      createdAt: Date.now()
+    };
+    try{
+      await withTimeout(saveClient(c), 4000);
+    }catch(storageErr){
+      console.error('Opslaan duurde te lang of mislukte, ga toch door:', storageErr);
+      state.clients[c.id] = c; // zorg dat de app lokaal in elk geval verder kan
+      if(!state.clientIds.includes(c.id)) state.clientIds.unshift(c.id);
+    }
+    toast(`${name} toegevoegd`);
+    await go('client', c.id);
+  }catch(err){
+    console.error('Aanmaken klant mislukt:', err);
+    toast('Er ging iets mis bij het aanmaken — zie console voor details');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Klant aanmaken →'; }
+  }
+}
+window.handleCreateClient = handleCreateClient;
+
+/* ---------- CLIENT DETAIL ---------- */
+function buildSystemPrompt(c){
+  const pkg = PACKAGES[c.package];
+  let p = `Je bent de AI-assistent op de website van "${c.name}"${c.sector?` (${c.sector})`:''}. Je praat namens dit bedrijf met bezoekers, in het Nederlands tenzij de bezoeker een andere taal gebruikt — pas je dan aan.
+
+BEDRIJFSINFORMATIE (dit is alles wat je zeker weet):
+${c.description ? `Omschrijving: ${c.description}\n` : ''}${c.services ? `Diensten & prijzen:\n${c.services}\n` : ''}${c.hours ? `Openingstijden: ${c.hours}\n` : ''}${c.address ? `Adres: ${c.address}\n` : ''}${c.phone ? `Telefoon/WhatsApp: ${c.phone}\n` : ''}${c.email ? `E-mail: ${c.email}\n` : ''}${c.extra ? `\nExtra instructies: ${c.extra}\n` : ''}
+STIJL: kort, vriendelijk, behulpzaam, geen opsommingen van keuzemenu's — voer een écht, vrij gesprek. Beantwoord elke vraag die de bezoeker typt zo goed mogelijk op basis van de informatie hierboven.
+BELANGRIJK: als iets niet in de informatie hierboven staat, verzin het niet. Zeg eerlijk dat je het niet zeker weet en verwijs naar het contact van het bedrijf.`;
+
+  if(pkg.canReserve){
+    p += `\n\nRESERVERINGEN: je mag reserveringen/boekingen aannemen. Vraag actief door tot je weet: naam, contactgegevens (telefoon of e-mail), gewenste activiteit/dienst, gewenste datum, en aantal personen. Zodra je al deze gegevens hebt, roep je de tool "plaats_reservering" aan om de boeking vast te leggen. Bevestig daarna kort en warm bij de klant dat het gelukt is.`;
+  } else {
+    p += `\n\nJe kunt zelf geen reserveringen vastleggen (dat zit niet in dit pakket). Verwijs mensen die willen boeken naar het telefoonnummer of e-mailadres van het bedrijf.`;
+  }
+  return p;
+}
+
+const RESERVATION_TOOL = {
+  name:'plaats_reservering',
+  description:'Leg een reservering/boeking vast zodra naam, contactgegevens, gewenste activiteit, datum en aantal personen bekend zijn.',
+  input_schema:{
+    type:'object',
+    properties:{
+      naam:{type:'string', description:'Naam van de klant'},
+      contact:{type:'string', description:'Telefoonnummer of e-mailadres'},
+      activiteit:{type:'string', description:'Gewenste dienst/activiteit'},
+      datum:{type:'string', description:'Gewenste datum (en tijd indien bekend)'},
+      aantal_personen:{type:'integer', description:'Aantal personen'},
+      opmerkingen:{type:'string', description:'Eventuele extra wensen of opmerkingen'}
+    },
+    required:['naam','contact','activiteit','datum','aantal_personen']
+  }
+};
+
+async function renderClientDetail(main, id){
+  const c = await loadClient(id);
+  if(!c){ main.innerHTML = `<div class="empty">Klant niet gevonden.</div>`; return; }
+  const pkg = PACKAGES[c.package];
+  if(!state.chat[id]) state.chat[id] = { messages:[], loading:false };
+  if(!state.social[id]) state.social[id] = { messages:[], loading:false };
+  if(!state.posts[id]) state.posts[id] = [];
+  if(!state.website[id]) state.website[id] = { html:null, previousHtml:null, loading:false };
+  if(!state.followup[id]) state.followup[id] = { steps:null, loading:false };
+  if(!state.detailTab[id]) state.detailTab[id] = 'chat';
+
+  const embed = `<!-- TalkWave AI-assistent: ${c.name} -->\n<script src="https://cdn.talkwave.nl/widget.js"\n  data-client="${c.id}" async><\/script>`;
+
+  const tabs = [{ key:'chat', label:'AI Chat', on:true }];
+  if(pkg.canSocialReply) tabs.push({ key:'social', label:'Social Media', on:true });
+  if(pkg.canFollowup) tabs.push({ key:'followup', label:'Leadopvolging', on:true });
+  if(c.websiteAddon) tabs.push({ key:'website', label:'Website', on:true });
+
+  main.innerHTML = `
+  <div class="detail-head">
+    <div>
+      <h1>${esc(c.name)}</h1>
+      <div class="row"><span class="badge ${pkg.cls}">${pkg.label} pakket</span>${c.sector?`<span style="color:var(--text-dim);font-size:12.5px">${esc(c.sector)}</span>`:''}</div>
+    </div>
+    <div class="row">
+      <button class="btn" onclick="go('dashboard')">← Dashboard</button>
+      <button class="btn btn-danger" onclick="onDeleteClient('${c.id}')">Verwijderen</button>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div>
+      <div class="tab-bar" id="tab-bar">
+        ${tabs.map(t=>`<div class="tab-btn${state.detailTab[id]===t.key?' active':''}" data-tab="${t.key}" onclick="switchTab('${id}','${t.key}')">${t.label}</div>`).join('')}
+      </div>
+      <div id="tab-content"></div>
+    </div>
+
+    <div class="side-panel">
+      <div class="box">
+        <div class="card-title">Bedrijfsgegevens</div>
+        <div class="kv"><span>Website</span><span>${esc(c.website)||'—'}</span></div>
+        <div class="kv"><span>Adres</span><span style="text-align:right">${esc(c.address)||'—'}</span></div>
+        <div class="kv"><span>Telefoon</span><span>${esc(c.phone)||'—'}</span></div>
+        <div class="kv"><span>E-mail</span><span>${esc(c.email)||'—'}</span></div>
+        <div class="kv"><span>Reserveren/leads via AI</span><span>${pkg.canReserve?'Aan':'Niet in pakket'}</span></div>
+        <div class="kv"><span>Social media reacties</span><span>${pkg.canSocialReply?'Aan':'Niet in pakket'}</span></div>
+        <div class="kv"><span>Social media posts</span><span>${pkg.canSocialPosts?'Aan':'Niet in pakket'}</span></div>
+        <div class="kv"><span>Automatische leadopvolging</span><span>${pkg.canFollowup?'Aan':'Niet in pakket'}</span></div>
+        <div class="kv"><span>Website erbij</span><span>${c.websiteAddon?'Ja (los add-on)':'Nee'}</span></div>
+      </div>
+
+      <div class="box">
+        <div class="card-title">Embedcode voor de chatbot</div>
+        <pre class="embed">${esc(embed)}</pre>
+        <button class="btn" style="width:100%;margin-top:8px" onclick="copyEmbed('${c.id}')">Code kopiëren</button>
+        <div class="warn">Let op: dit is een placeholder-tag. De chat draait al live met echte AI, maar om 'm écht op de site van een klant te zetten heeft TalkWave nog een eigen backend/proxy nodig die de API-key veilig bewaart — die mag nooit in code op de site van de klant staan.</div>
+      </div>
+
+      <div class="box">
+        <div class="card-title">Reserveringen / leads ${pkg.canReserve?'':'(niet beschikbaar in dit pakket)'}</div>
+        <div id="resv-list"><div class="hint">Laden...</div></div>
+      </div>
+    </div>
+  </div>`;
+
+  await refreshReservations(id, pkg.canReserve);
+  renderTabContent(id, c, pkg);
+}
+
+function switchTab(id, tab){
+  state.detailTab[id] = tab;
+  const c = state.clients[id];
+  document.querySelectorAll('#tab-bar .tab-btn').forEach(el=>{
+    el.classList.toggle('active', el.dataset.tab===tab);
+  });
+  renderTabContent(id, c, PACKAGES[c.package]);
+}
+window.switchTab = switchTab;
+
+function renderTabContent(id, c, pkg){
+  const el = document.getElementById('tab-content');
+  const tab = state.detailTab[id];
+  if(tab==='social' && pkg.canSocialReply) return renderSocialTab(el, id, c);
+  if(tab==='followup' && pkg.canFollowup) return renderFollowupTab(el, id, c);
+  if(tab==='website' && c.websiteAddon) return renderWebsiteTab(el, id, c);
+  return renderChatTab(el, id, c);
+}
+
+/* ---- CHAT TAB ---- */
+function renderChatTab(el, id, c){
+  el.innerHTML = `
+    <div class="chat-card">
+      <div class="chat-head">
+        <div class="avatar">${esc(c.name.charAt(0).toUpperCase())}</div>
+        <div class="who"><b>${esc(c.name)}</b><div class="status"><span class="d"></span> Online — reageert direct</div></div>
+      </div>
+      <div id="chatbody"></div>
+      <div class="suggest-row" id="suggest-row"></div>
+      <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="Typ je vraag, bijvoorbeeld: zijn jullie zaterdag open?" onkeydown="if(event.key==='Enter')sendChat('${c.id}')">
+        <button id="chat-send" onclick="sendChat('${c.id}')">Stuur</button>
+      </div>
+    </div>`;
+  renderChatMessages(id);
+  renderSuggestions(id, c);
+}
+
+/* ---- WEBSITE TAB ---- */
+function renderWebsiteTab(el, id, c){
+  const w = state.website[id];
+  el.innerHTML = `
+    <div class="box">
+      <div class="card-title">🌐 Website genereren</div>
+      <div class="hint" style="margin-bottom:12px">Echte AI-generatie van een volledige, kant-en-klare één-pagina website (HTML, direct te downloaden) op basis van de ingevulde bedrijfsinfo.</div>
+      <button class="btn btn-primary" id="site-gen-btn" onclick="generateWebsite('${id}')">${w.html ? 'Opnieuw genereren →' : 'Genereer website →'}</button>
+      <div id="site-status" style="margin-top:10px"></div>
+      <div id="site-preview-area" style="margin-top:14px"></div>
+    </div>
+    ${w.html ? `
+    <div class="box" style="margin-top:16px;">
+      <div class="card-title">✏️ Wijzig deze website</div>
+      <div class="hint" style="margin-bottom:10px">Beschrijf wat er anders moet — bijv. "maak de knoppen groen", "voeg een reviews-sectie toe", "de tekst bij Over ons moet korter". De AI past de bestaande website aan, niet een nieuwe versie vanaf nul.</div>
+      <div class="chat-input" style="padding:0;border:none;margin-bottom:8px;">
+        <input type="text" id="edit-instruction" placeholder="Wat moet er veranderen?" onkeydown="if(event.key==='Enter')editWebsite('${id}')">
+        <button id="edit-btn" onclick="editWebsite('${id}')">Toepassen →</button>
+      </div>
+      <div id="edit-status"></div>
+      ${w.previousHtml ? `<button class="btn" style="margin-top:8px" onclick="revertWebsite('${id}')">↩ Herstel vorige versie</button>` : ''}
+    </div>` : ''}`;
+  if(w.html) renderSitePreview(id);
+}
+
+const REFERENCE_EXAMPLE_HTML = `<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watersportcentrum Brielle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --moss:#22301f;
+    --moss-dark:#161f14;
+    --sand:#f1e8d2;
+    --marigold:#dc9a2e;
+    --brick:#a5432f;
+    --ink:#20281c;
+    --ink-soft:#57604c;
+    --line:#d9cead;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Karla',system-ui,sans-serif;color:var(--ink);background:var(--sand);line-height:1.55;}
+  h1,h2,h3{font-family:'Petrona',Georgia,serif;color:var(--moss-dark);font-weight:600;line-height:1.12;}
+  a{color:inherit;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+  nav{padding:22px 0;}
+  nav .wrap{display:flex;justify-content:space-between;align-items:center;}
+  .brand{font-family:'Petrona';font-style:italic;font-weight:600;font-size:20px;color:var(--moss-dark);}
+  nav a.callbtn{background:var(--moss-dark);color:var(--sand);padding:9px 18px;border-radius:3px;font-weight:600;font-size:14px;text-decoration:none;}
+  .hero{padding:20px 0 70px;}
+  .hero-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:56px;align-items:end;}
+  .hero h1{font-size:clamp(36px,5.6vw,58px);max-width:9ch;}
+  .hero .lede{margin-top:20px;font-size:17px;color:var(--ink-soft);max-width:38ch;}
+  .hero .facts{margin-top:28px;display:flex;flex-direction:column;gap:7px;font-size:14.5px;}
+  .hero .facts li{list-style:none;padding-left:20px;position:relative;}
+  .hero .facts li::before{content:"";position:absolute;left:0;top:8px;width:9px;height:2px;background:var(--marigold);}
+  .hero-actions{margin-top:32px;display:flex;gap:14px;}
+  .btn-solid{background:var(--moss-dark);color:var(--sand);padding:13px 22px;border-radius:3px;font-weight:600;font-size:14.5px;text-decoration:none;}
+  .btn-line{border:1.5px solid var(--moss-dark);color:var(--moss-dark);padding:13px 22px;border-radius:3px;font-weight:600;font-size:14.5px;text-decoration:none;}
+  .locator{background:var(--moss);border-radius:6px;padding:26px;color:var(--sand);}
+  .locator svg{width:100%;height:auto;display:block;margin-bottom:16px;}
+  .locator .loc-label{font-size:12.5px;color:#c7d4bf;}
+  .locator .loc-title{font-family:'Petrona';font-style:italic;font-size:19px;margin-top:4px;color:var(--sand);}
+  .about{padding:64px 0;border-top:1px solid var(--line);}
+  .about-grid{display:grid;grid-template-columns:220px 1fr;gap:40px;}
+  .about-grid h2{font-size:28px;}
+  .about-grid .body{max-width:62ch;color:var(--ink-soft);font-size:16px;}
+  .about-grid .body p+p{margin-top:14px;}
+  .services{padding:64px 0;border-top:1px solid var(--line);}
+  .services h2{font-size:28px;margin-bottom:32px;}
+  .service-row{display:flex;justify-content:space-between;align-items:baseline;padding:18px 0;border-top:1px solid var(--line);gap:24px;}
+  .service-row:last-child{border-bottom:1px solid var(--line);}
+  .service-row .name{font-family:'Petrona';font-size:19px;color:var(--moss-dark);}
+  .service-row .desc{font-size:13.5px;color:var(--ink-soft);margin-top:3px;}
+  .service-row .price{font-weight:700;color:var(--brick);white-space:nowrap;font-size:15px;}
+  .practical{padding:64px 0;border-top:1px solid var(--line);background:var(--moss);color:var(--sand);}
+  .practical .wrap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;}
+  .practical h3{color:var(--sand);font-size:13px;font-weight:600;margin-bottom:8px;font-family:'Karla';}
+  .practical p{font-size:14.5px;color:#d6dfcd;}
+  .contact{padding:70px 0;text-align:left;}
+  .contact h2{font-size:30px;max-width:14ch;}
+  .contact p{margin-top:14px;color:var(--ink-soft);font-size:16px;max-width:44ch;}
+  .contact-actions{margin-top:26px;display:flex;gap:14px;flex-wrap:wrap;}
+  footer{padding:26px 0;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);}
+  @media (max-width:760px){ .hero-grid,.about-grid,.practical .wrap{grid-template-columns:1fr;} .locator{order:-1;} }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <div class="brand">Watersportcentrum Brielle</div>
+  <a class="callbtn" href="tel:0618213220">Bel 06 18213220</a>
+</div></nav>
+<header class="hero"><div class="wrap hero-grid">
+  <div>
+    <h1>Het meer op, zonder vaarbewijs.</h1>
+    <p class="lede">Motorboten, waterski, SUP's en e-bikes, te huur aan de noordoever van het Brielse Meer — pal naast de veerpont.</p>
+    <ul class="facts">
+      <li>Geen vaarbewijs nodig voor onze boten</li>
+      <li>Gratis parkeren voor de deur</li>
+      <li>Huisdieren zijn welkom</li>
+    </ul>
+    <div class="hero-actions">
+      <a class="btn-solid" href="#contact">Reserveer je plek</a>
+      <a class="btn-line" href="#diensten">Bekijk het aanbod</a>
+    </div>
+  </div>
+  <div class="locator">
+    <svg viewBox="0 0 260 160" fill="none">
+      <path d="M10 90 Q60 60 130 85 T250 80" stroke="#dc9a2e" stroke-width="2.5" stroke-dasharray="1 9" stroke-linecap="round"/>
+      <circle cx="130" cy="85" r="7" fill="#f1e8d2" stroke="#dc9a2e" stroke-width="2.5"/>
+      <rect x="150" y="100" width="34" height="20" rx="2" fill="#f1e8d2" opacity=".9"/>
+      <path d="M150 100 L167 88 L184 100 Z" fill="#f1e8d2" opacity=".9"/>
+      <text x="30" y="35" fill="#c7d4bf" font-family="Karla" font-size="11">Brielse Meer</text>
+      <text x="145" y="140" fill="#c7d4bf" font-family="Karla" font-size="10">Geuzenveer</text>
+    </svg>
+    <div class="loc-label">Vindplaats</div>
+    <div class="loc-title">Direct naast de veerpont, Brielse Veerweg 3</div>
+  </div>
+</div></header>
+<section class="about"><div class="wrap about-grid">
+  <h2>Wie wij zijn</h2>
+  <div class="body">
+    <p>Watersportcentrum Brielle verhuurt alles wat je nodig hebt om het Brielse Meer op te gaan — van een rustige tocht in de kano tot een middag waterskiën. Geen vaarbewijs, geen ingewikkelde papierwinkel: je kiest je activiteit en binnen een paar minuten lig je op het water.</p>
+    <p>We zitten aan de noordoever, direct naast het voet- en fietsveer, met een terras waar je na afloop kunt blijven hangen.</p>
+  </div>
+</div></section>
+<section class="services" id="diensten"><div class="wrap">
+  <h2>Diensten &amp; prijzen</h2>
+  <div class="service-row"><div><div class="name">Waterski &amp; wakeboard</div><div class="desc">Persoonlijke les, elk niveau</div></div><div class="price">vanaf €145 / uur</div></div>
+  <div class="service-row"><div><div class="name">Motorboot</div><div class="desc">Zelf varen, geen vaarbewijs nodig</div></div><div class="price">vanaf €85 / halve dag</div></div>
+  <div class="service-row"><div><div class="name">SUP, kano &amp; kayak</div><div class="desc">Voor een rustige tocht over het meer</div></div><div class="price">vanaf €15 / uur</div></div>
+</div></section>
+<section class="practical"><div class="wrap">
+  <div><h3>Openingstijden</h3><p>April &amp; september: za, zo &amp; feestdagen, 9:30–17:30.</p></div>
+  <div><h3>Adres</h3><p>Brielse Veerweg 3<br>3231 NA Brielle</p></div>
+  <div><h3>Contact</h3><p>06 18213220<br>info@watersportcentrumbrielle.nl</p></div>
+</div></section>
+<section class="contact" id="contact"><div class="wrap">
+  <h2>Klaar voor het water?</h2>
+  <p>Bel of app ons om te reserveren, of loop gewoon binnen op een van onze openingsdagen.</p>
+  <div class="contact-actions">
+    <a class="btn-solid" href="tel:0618213220">Bel 06 18213220</a>
+    <a class="btn-line" href="mailto:info@watersportcentrumbrielle.nl">Mail ons</a>
+  </div>
+</div></section>
+<footer><div class="wrap">Watersportcentrum Brielle — website door TalkWave</div></footer>
+</body>
+</html>`;
+
+function buildWebsitePrompt(c, compact){
+  const antiPatterns = `VERMIJD EXPLICIET (dit zijn de bekende tekens van een generieke AI-pagina, en klanten prikken hier meteen doorheen):
+- Warme crème achtergrond (rond #F4F1EA) met een terracotta/kleiaccent (rond #D97757).
+- Bijna-zwarte achtergrond met één felgroene of vermiljoenrode accentkleur.
+- Identieke afgeronde kaartjes met allemaal dezelfde zachte grijze schaduw, of een gradient-wasje als decoratie.
+- ALL-CAPS "eyebrow"-labeltjes boven koppen, meta-tekst met bullet-punten (A · B · C), labels met een gedachtestreepje ("WOORD — fragment"), een pijltje (→) achter elke link/knoptekst.
+- Genummerde markers (01 / 02 / 03) tenzij de inhoud een échte, feitelijke volgorde is.
+- Gecentreerde hero met kop + subtekst + knop als standaardoplossing — kies dit alleen als het na overweging echt de beste vorm is.`;
+
+  const guidance = compact
+    ? `Bouw een compacte maar verzorgde één-pagina website (HTML). Secties: hero, "over ons", diensten/prijzen, contact/openingstijden — elk met echte, complete tekst. Kies een kleurenpalet en typografie die specifiek bij de sector van dit bedrijf passen. CSS-budget: max. ~80 regels, functioneel en strak.
+${antiPatterns}
+Eén zelfstandig HTML-bestand, inline <style>, mag Google Fonts CDN gebruiken. Antwoord UITSLUITEND met de ruwe HTML, beginnend met <!DOCTYPE html> en eindigend met </html> — geen uitleg, geen codeblok.`
+    : `Je bent de design lead van een klein studio die bekendstaat om een unieke visuele identiteit per klant — nooit een sjabloon, en deze klant heeft eerder een generiek voorstel afgewezen. Bouw een volledige, originele één-pagina marketingwebsite (HTML) die je zou durven laten zien als portfolio-stuk. Antwoord UITSLUITEND met de ruwe HTML, beginnend met <!DOCTYPE html> en eindigend met </html> — geen markdown-codeblok, geen uitleg ervoor of erna.
+
+DENK EERST NA (intern, schrijf dit niet uit): wat is het concrete, tastbare karakter van dít bedrijf — de sector, de plek, het gevoel? Baseer elke ontwerpkeuze hierop, niet op wat "professioneel" of "modern" hoort te zijn in het algemeen.
+
+${antiPatterns}
+
+VERPLICHTE ONTWERPKEUZES, elk concreet afgeleid van dít specifieke bedrijf:
+- Een eigen kleurenpalet: noem voor jezelf 4-6 hex-kleuren die passen bij de sfeer van déze zaak (niet "netjes en blauw", maar kleuren die de geur, textuur of sfeer van de branche oproepen).
+- Eén lettertype-paar (display + body) dat de persoonlijkheid van de pagina draagt — gebruik het display-lettertype ook echt als vormgevend element, niet als neutrale drager van tekst.
+- Eén signature element specifiek voor dit bedrijf (bv. een illustratie, patroon, of ongebruikelijke maar functionele hero-compositie) — houd al het andere rustig en ingetogen eromheen.
+- Kies bewust: links uitgelijnd, gecentreerd, of asymmetrisch — niet automatisch centreren.
+- Structuurelementen (lijnen, kaders, labels) mogen alleen als ze echt informatie coderen, niet als decoratie.
+
+WERKWIJZE: CSS-budget max. ~150 regels — een paar sterke, doordachte keuzes in plaats van veel decoratie. Elke sectie moet volledig zijn met echte, concrete tekst; geen sectie mag leeg of half afgemaakt zijn.
+
+VERPLICHTE SECTIES, elk met echte inhoud: hero (naam + pitch), over het bedrijf, diensten/prijzen (netjes gepresenteerd, geen kale identieke kaartjes), openingstijden + adres, contact/CTA.
+Verder: volledig responsive, goed contrast, concrete copy ALLEEN gebaseerd op de info hieronder (verzin geen feiten), één zelfstandig HTML-bestand met inline <style>, Google Fonts CDN toegestaan.
+
+TER ILLUSTRATIE — dit is een eerder goedgekeurd voorbeeld van het gewenste kwaliteitsniveau en de gewenste aanpak (concreet eigen palet, doordachte typografie, een informatief signature-element, editorial in plaats van kaartjes-lay-out, bewuste uitlijning). Kopieer dit NIET letterlijk en gebruik deze kleuren/lay-out/tekst niet opnieuw — het is voor een ander bedrijf (een watersportcentrum). Vertaal alleen de AANPAK naar een volledig eigen, passend ontwerp voor het bedrijf hieronder:
+
+${REFERENCE_EXAMPLE_HTML}`;
+
+  return `${guidance}
+
+Bedrijf: ${c.name}${c.sector?` (${c.sector})`:''}
+${c.description?`Omschrijving: ${c.description}\n`:''}${c.services?`Diensten & prijzen:\n${c.services}\n`:''}${c.hours?`Openingstijden: ${c.hours}\n`:''}${c.address?`Adres: ${c.address}\n`:''}${c.phone?`Telefoon: ${c.phone}\n`:''}${c.email?`E-mail: ${c.email}\n`:''}${(!compact && c.extra)?`Extra context/toon: ${c.extra}\n`:''}`;
+}
+
+function buildEditPrompt(currentHtml, instruction){
+  return `Je krijgt de HUIDIGE HTML van een website en een gevraagde wijziging. Pas ALLEEN toe wat gevraagd wordt — laat de rest van de website ongewijzigd. Geef de VOLLEDIGE, bijgewerkte HTML terug, compleet van <!DOCTYPE html> tot </html> — nooit een fragment, diff, of gedeeltelijke pagina. Antwoord uitsluitend met de ruwe HTML, geen uitleg, geen codeblok.
+
+GEVRAAGDE WIJZIGING: ${instruction}
+
+HUIDIGE HTML:
+${currentHtml}`;
+}
+
+async function requestWebsiteHtml(prompt, maxTokens, timeoutMs){
+  const body = { model:'claude-sonnet-4-6', max_tokens:maxTokens, messages:[{role:'user', content:prompt}] };
+  const res = await withTimeout(fetch('/api/clientos/ai', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  }), timeoutMs);
+  const data = await res.json();
+  if(data && data.stop_reason === 'max_tokens'){
+    throw new Error('Antwoord werd afgebroken door de tokenlimiet (waarschijnlijk onvolledige pagina)');
+  }
+  let html = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+  html = html.replace(/```html/gi,'').replace(/```/g,'').trim();
+  if(!html.toLowerCase().includes('<html')) throw new Error('Geen geldige HTML ontvangen');
+  if(!html.toLowerCase().includes('</html>')) throw new Error('Pagina lijkt afgebroken (geen afsluitende </html>)');
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  const bodyText = bodyMatch ? bodyMatch[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim() : '';
+  if(bodyText.length < 250) throw new Error('Pagina-inhoud is te kort — waarschijnlijk missen er secties');
+  const headingCount = (html.match(/<h[23][ >]/gi) || []).length;
+  if(headingCount < 2) throw new Error('Te weinig secties gevonden — pagina is waarschijnlijk onvolledig');
+  return html;
+}
+
+/* Gegarandeerde fallback: geen AI, geen tokenlimiet, altijd 100% compleet.
+   Wordt gebruikt als beide AI-pogingen mislukken, zodat er nooit een lege/kapotte pagina overblijft. */
+function buildStaticFallbackSite(c){
+  const services = (c.services||'').split('\n').map(l=>l.trim()).filter(Boolean).map(line=>{
+    const parts = line.split(' - ');
+    const name = parts[0] || line;
+    const price = parts.length > 1 ? parts.slice(1).join(' - ') : '';
+    return `<div class="fb-row"><div class="fb-name">${esc(name)}</div>${price?`<div class="fb-price">${esc(price)}</div>`:''}</div>`;
+  }).join('');
+  return `<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(c.name)}</title>
+<style>
+  :root{--paper:#f7f3ea;--ink:#241f16;--ink-soft:#6d6252;--accent:#3d6e63;--line:#e1d8c3;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Georgia,'Times New Roman',serif;color:var(--ink);background:var(--paper);line-height:1.6;}
+  .fb-wrap{max-width:760px;margin:0 auto;padding:0 26px;}
+  .fb-hero{padding:80px 0 56px;}
+  .fb-hero h1{font-size:clamp(30px,5vw,44px);font-weight:600;max-width:14ch;}
+  .fb-hero p{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:16.5px;color:var(--ink-soft);margin-top:16px;max-width:52ch;}
+  .fb-cta{display:inline-block;margin-top:26px;background:var(--ink);color:var(--paper);padding:12px 24px;font-family:-apple-system,Helvetica,Arial,sans-serif;font-weight:600;font-size:14.5px;text-decoration:none;}
+  section{padding:44px 0;border-top:1px solid var(--line);}
+  h2{font-size:24px;font-weight:600;margin-bottom:16px;}
+  p{font-family:-apple-system,Helvetica,Arial,sans-serif;color:var(--ink-soft);font-size:15.5px;max-width:60ch;}
+  .fb-row{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding:13px 0;border-top:1px solid var(--line);font-family:-apple-system,Helvetica,Arial,sans-serif;}
+  .fb-row:last-child{border-bottom:1px solid var(--line);}
+  .fb-name{font-size:15.5px;}
+  .fb-price{color:var(--accent);font-weight:700;font-size:14.5px;white-space:nowrap;}
+  .fb-info{display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:-apple-system,Helvetica,Arial,sans-serif;}
+  .fb-info div b{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;font-weight:600;}
+  .fb-info div span{font-size:15px;}
+  footer{padding:26px 0;text-align:left;color:var(--ink-soft);font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:12.5px;border-top:1px solid var(--line);}
+  @media(max-width:560px){.fb-info{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+  <header class="fb-hero"><div class="fb-wrap">
+    <h1>${esc(c.name)}</h1>
+    <p>${esc(c.description || (c.sector ? `Uw ${c.sector.toLowerCase()} in de buurt.` : 'Welkom op onze website.'))}</p>
+    ${c.phone ? `<a class="fb-cta" href="tel:${esc(c.phone.replace(/\s+/g,''))}">Neem contact op</a>` : ''}
+  </div></header>
+  ${c.description ? `<section><div class="fb-wrap"><h2>Over ons</h2><p>${esc(c.description)}</p></div></section>` : ''}
+  ${services ? `<section><div class="fb-wrap"><h2>Diensten &amp; prijzen</h2><div>${services}</div></div></section>` : ''}
+  <section><div class="fb-wrap"><h2>Praktische informatie</h2><div class="fb-info">
+    ${c.hours ? `<div><b>Openingstijden</b><span>${esc(c.hours)}</span></div>` : ''}
+    ${c.address ? `<div><b>Adres</b><span>${esc(c.address)}</span></div>` : ''}
+    ${c.phone ? `<div><b>Telefoon</b><span>${esc(c.phone)}</span></div>` : ''}
+    ${c.email ? `<div><b>E-mail</b><span>${esc(c.email)}</span></div>` : ''}
+  </div></div></section>
+  <footer><div class="fb-wrap">${esc(c.name)} — website gebouwd door TalkWave</div></footer>
+</body>
+</html>`;
+}
+
+async function generateWebsite(id){
+  const c = state.clients[id];
+  const w = state.website[id];
+  const btn = document.getElementById('site-gen-btn');
+  const status = document.getElementById('site-status');
+  btn.disabled = true; btn.textContent = 'Bezig met bouwen...';
+
+  let seconds = 0;
+  const ticker = setInterval(()=>{
+    seconds++;
+    const s = document.getElementById('gen-timer');
+    if(s) s.textContent = seconds;
+  }, 1000);
+  status.innerHTML = `<div class="hint">De AI ontwerpt en schrijft de website (<span id="gen-timer">0</span>s)...</div>`;
+
+  let usedFallback = false;
+  try{
+    let html;
+    try{
+      html = await requestWebsiteHtml(buildWebsitePrompt(c, false), 6000, 85000);
+    }catch(firstErr){
+      console.error('Eerste poging mislukt of onvolledig, val terug op compactere versie:', firstErr);
+      status.innerHTML = `<div class="hint">Eerste versie kwam niet compleet uit de bus — probeer een compactere versie (<span id="gen-timer">${seconds}</span>s)...</div>`;
+      try{
+        html = await requestWebsiteHtml(buildWebsitePrompt(c, true), 3500, 45000);
+      }catch(secondErr){
+        console.error('Ook compactere versie mislukt, gebruik gegarandeerde vaste template:', secondErr);
+        status.innerHTML = `<div class="hint">Ook de compactere versie lukte niet — gegarandeerde standaardversie wordt gebruikt (geen AI-afhankelijkheid)...</div>`;
+        html = buildStaticFallbackSite(c);
+        usedFallback = true;
+      }
+    }
+    w.html = html;
+    status.innerHTML = usedFallback
+      ? `<div class="analyze-summary" style="border-color:rgba(245,185,91,.3);background:rgba(245,185,91,.06);">⚠️ De AI-ontwerpversie lukte niet, dus dit is de gegarandeerde standaardversie — simpeler qua vormgeving, maar altijd compleet en werkend. Klik gerust op "Opnieuw genereren" om de AI-versie nogmaals te proberen.</div>`
+      : `<div class="analyze-summary">✅ Website gegenereerd. Bekijk de preview hieronder of download het bestand.</div>`;
+    renderSitePreview(id);
+    toast(usedFallback ? 'Standaardversie gebruikt (AI-versie lukte niet)' : 'Website gegenereerd');
+  }catch(err){
+    console.error('Website generatie definitief mislukt:', err);
+    status.innerHTML = `<div class="hint" style="color:#e88">Genereren mislukt (${esc(err.message||'onbekende fout')}). Probeer het nog eens.</div>`;
+  }finally{
+    clearInterval(ticker);
+    btn.disabled = false; btn.textContent = state.website[id].html ? 'Opnieuw genereren →' : 'Genereer website →';
+  }
+}
+window.generateWebsite = generateWebsite;
+
+async function editWebsite(id){
+  const w = state.website[id];
+  if(!w || !w.html){ toast('Genereer eerst een website'); return; }
+  const input = document.getElementById('edit-instruction');
+  if(!input) return;
+  const instruction = input.value.trim();
+  if(!instruction){ toast('Beschrijf eerst wat er moet veranderen'); input.focus(); return; }
+  const btn = document.getElementById('edit-btn');
+  const status = document.getElementById('edit-status');
+  if(btn){ btn.disabled = true; btn.textContent = 'Bezig...'; }
+  if(status) status.innerHTML = `<div class="hint" style="margin-top:8px">De AI past de website aan...</div>`;
+  try{
+    const html = await requestWebsiteHtml(buildEditPrompt(w.html, instruction), 6000, 70000);
+    w.previousHtml = w.html;
+    w.html = html;
+    input.value = '';
+    toast('Wijziging toegepast');
+    const el = document.getElementById('tab-content');
+    if(el) renderWebsiteTab(el, id, state.clients[id]);
+  }catch(err){
+    console.error('Wijziging mislukt:', err);
+    const status2 = document.getElementById('edit-status');
+    if(status2) status2.innerHTML = `<div class="hint" style="color:#e88;margin-top:8px">Wijziging mislukt (${esc(err.message||'onbekende fout')}). De website is ongewijzigd gebleven — probeer het opnieuw, eventueel iets anders geformuleerd.</div>`;
+  }finally{
+    const btn2 = document.getElementById('edit-btn');
+    if(btn2){ btn2.disabled = false; btn2.textContent = 'Toepassen →'; }
+  }
+}
+window.editWebsite = editWebsite;
+
+function revertWebsite(id){
+  const w = state.website[id];
+  if(!w || !w.previousHtml) return;
+  w.html = w.previousHtml;
+  w.previousHtml = null;
+  toast('Vorige versie hersteld');
+  const el = document.getElementById('tab-content');
+  if(el) renderWebsiteTab(el, id, state.clients[id]);
+}
+window.revertWebsite = revertWebsite;
+
+function renderSitePreview(id){
+  const area = document.getElementById('site-preview-area');
+  if(!area) return;
+  const w = state.website[id];
+  area.innerHTML = `
+    <div class="site-preview-wrap"><iframe id="site-iframe" sandbox="allow-same-origin"></iframe></div>
+    <div id="site-preview-warning"></div>
+    <div class="row" style="margin-top:10px;gap:8px;">
+      <button class="btn" style="flex:1" onclick="downloadWebsite('${id}')">Download HTML-bestand</button>
+      <button class="btn btn-primary" style="flex:1" onclick="openWebsiteInNewTab('${id}')">Open in nieuw tabblad →</button>
+    </div>
+    <div class="warn">Dit HTML-bestand is echt en volledig — download het en zet het direct online (bijv. via Vercel, Netlify of de eigen hosting van de klant). Voor tekstwijzigingen: pas de bedrijfsinfo aan en genereer opnieuw, of bewerk de HTML rechtstreeks.</div>`;
+  const frame = document.getElementById('site-iframe');
+  if(frame){
+    frame.onload = ()=>{
+      try{
+        const doc = frame.contentDocument;
+        const len = doc && doc.body ? doc.body.innerText.trim().length : 0;
+        if(!doc || len < 15){
+          const warnEl = document.getElementById('site-preview-warning');
+          if(warnEl) warnEl.innerHTML = `<div class="hint" style="color:var(--amber);margin:8px 0 0">De voorvertoning hierboven blijft in dit venster soms leeg (een bekende beperking van ingesloten previews). Klik "Open in nieuw tabblad" — daar werkt de website altijd.</div>`;
+        }
+      }catch(e){ console.warn('Kon preview-inhoud niet controleren:', e); }
+    };
+    frame.srcdoc = w.html;
+  }
+}
+
+function openWebsiteInNewTab(id){
+  const w = state.website[id];
+  if(!w || !w.html){ toast('Genereer eerst een website'); return; }
+  const blob = new Blob([w.html], { type:'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+window.openWebsiteInNewTab = openWebsiteInNewTab;
+
+function downloadWebsite(id){
+  const w = state.website[id];
+  const c = state.clients[id];
+  if(!w.html) return;
+  const blob = new Blob([w.html], { type:'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (c.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '.html';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+window.downloadWebsite = downloadWebsite;
+
+/* ---- LEADOPVOLGING TAB (Pro) ---- */
+function renderFollowupTab(el, id, c){
+  const f = state.followup[id];
+  el.innerHTML = `
+    <div class="box">
+      <div class="card-title">📬 Automatische leadopvolging</div>
+      <div class="hint" style="margin-bottom:12px">Genereert een echte, kant-en-klare 3-stappen e-mailreeks (dag 0, 1 en 3) voor een lead die niet reageert — geschreven door AI, specifiek voor dit bedrijf.</div>
+      <button class="btn btn-primary" id="followup-btn" onclick="generateFollowup('${id}')">${f.steps ? 'Opnieuw genereren →' : 'Genereer opvolgreeks →'}</button>
+      <div id="followup-list" style="margin-top:14px"></div>
+      <div class="warn">Let op: dit genereert de tekst van de reeks — echt en direct bruikbaar. Het automatisch ná 0/1/3 dagen daadwerkelijk versturen vereist een gekoppelde mailservice + scheduler (bijv. via Make.com), wat buiten deze demo-omgeving valt.</div>
+    </div>`;
+  if(f.steps) renderFollowupList(id);
+}
+
+async function generateFollowup(id){
+  const c = state.clients[id];
+  const f = state.followup[id];
+  const btn = document.getElementById('followup-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Bezig...'; }
+  try{
+    const prompt = `Schrijf een 3-stappen automatische e-mail-opvolgreeks voor een lead die niet reageert, voor dit bedrijf:
+Bedrijf: ${c.name}${c.sector?` (${c.sector})`:''}
+${c.description?`Omschrijving: ${c.description}\n`:''}${c.extra?`Toon/instructies: ${c.extra}\n`:''}
+Stap 1 (dag 0): directe bevestiging dat het bericht is ontvangen.
+Stap 2 (dag 1): vriendelijke persoonlijke follow-up.
+Stap 3 (dag 3): laatste, warme reminder met duidelijke call-to-action.
+
+Antwoord UITSLUITEND met geldige JSON: {"steps":[{"dag":"Dag 0","titel":"...","tekst":"..."},{"dag":"Dag 1","titel":"...","tekst":"..."},{"dag":"Dag 3","titel":"...","tekst":"..."}]}. Geen markdown, geen uitleg.`;
+    const body = { model:'claude-sonnet-4-6', max_tokens:900, messages:[{role:'user', content:prompt}] };
+    const res = await withTimeout(fetch('/api/clientos/ai', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    }), 25000);
+    const data = await res.json();
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    f.steps = Array.isArray(parsed.steps) ? parsed.steps : null;
+    if(!f.steps) throw new Error('Geen geldige reeks ontvangen');
+    renderFollowupList(id);
+    toast('Opvolgreeks gegenereerd');
+  }catch(err){
+    console.error('Opvolgreeks genereren mislukt:', err);
+    toast('Genereren mislukt, probeer het nog eens');
+  }finally{
+    const btn2 = document.getElementById('followup-btn');
+    if(btn2){ btn2.disabled = false; btn2.textContent = state.followup[id].steps ? 'Opnieuw genereren →' : 'Genereer opvolgreeks →'; }
+  }
+}
+window.generateFollowup = generateFollowup;
+
+function renderFollowupList(id){
+  const list = document.getElementById('followup-list');
+  if(!list) return;
+  const steps = state.followup[id].steps;
+  list.innerHTML = steps.map(s=>`
+    <div class="post-card">
+      <b style="color:var(--blue)">${esc(s.dag||'')}</b> — <b>${esc(s.titel||'')}</b>
+      <div style="margin-top:6px;color:var(--text-dim)">${esc(s.tekst||'')}</div>
+    </div>`).join('');
+}
+
+/* ---- SOCIAL MEDIA TAB ---- */
+function buildSocialSystemPrompt(c){
+  return `Je bent de social-media-stem van "${c.name}"${c.sector?` (${c.sector})`:''}. Je reageert op comments/DM's op Instagram/Facebook namens dit bedrijf.
+
+BEDRIJFSINFORMATIE:
+${c.description ? `Omschrijving: ${c.description}\n` : ''}${c.services ? `Diensten & prijzen:\n${c.services}\n` : ''}${c.hours ? `Openingstijden: ${c.hours}\n` : ''}${c.phone ? `Telefoon/WhatsApp: ${c.phone}\n` : ''}${c.extra ? `Extra instructies: ${c.extra}\n` : ''}
+STIJL: kort (max 2-3 zinnen), casual en gastvrij zoals social media dat vraagt, gerust een emoji waar passend — maar niet overdreven. Verzin geen info die hierboven niet staat; verwijs dan naar een DM of het contact van het bedrijf.`;
+}
+
+function renderSocialTab(el, id, c){
+  const pkg = PACKAGES[c.package];
+  el.innerHTML = `
+    <div class="box" style="margin-bottom:16px;">
+      <div class="card-title">💬 AI reageert op social media (comment/DM-simulator)</div>
+      <div class="hint" style="margin-bottom:10px">Simuleer een comment of DM alsof je een klant bent — de AI reageert er echt op, in de stijl van dit bedrijf. (Dit is een simulatie: koppeling met een echt Instagram/Facebook-account vereist hun API-toegang, die hier niet beschikbaar is.)</div>
+      <div id="socialbody" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;margin-bottom:10px;"></div>
+      <div class="chat-input" style="padding:0;border:none;">
+        <input type="text" id="social-input" placeholder="bijv. Hoi! Hebben jullie zaterdag nog plek?" onkeydown="if(event.key==='Enter')sendSocial('${id}')">
+        <button id="social-send" onclick="sendSocial('${id}')">Stuur</button>
+      </div>
+    </div>
+    ${pkg.canSocialPosts ? `
+    <div class="box">
+      <div class="card-title">✍️ Social Media Management — posts genereren</div>
+      <div class="hint" style="margin-bottom:10px">Echte AI-tekstgeneratie — 3 kant-en-klare captions, direct te gebruiken of als vertrekpunt.</div>
+      <div class="chat-input" style="padding:0;border:none;margin-bottom:12px;">
+        <input type="text" id="post-topic" placeholder="Onderwerp (optioneel), bijv. 'zomeraanbieding' of laat leeg voor algemeen">
+        <button id="post-gen-btn" onclick="generatePosts('${id}')">Genereer 3 posts →</button>
+      </div>
+      <div id="post-list"></div>
+    </div>` : `
+    <div class="box"><div class="hint">Social Media Management (zelf posts genereren) zit alleen in het Pro-pakket. Dit pakket (${pkg.label}) bevat alleen automatische reacties op comments/DM's.</div></div>`}`;
+  renderSocialMessages(id);
+  if(pkg.canSocialPosts) renderPostList(id);
+}
+
+function renderSocialMessages(id){
+  const box = document.getElementById('socialbody');
+  if(!box) return;
+  const social = state.social[id];
+  let html = social.messages.length ? '' : `<div class="hint">Nog geen berichten — typ hieronder een reactie zoals een klant die zou plaatsen.</div>`;
+  for(const m of social.messages){
+    if(m.role==='user' && typeof m.content==='string'){
+      html += `<div class="bubble user" style="align-self:flex-end">${esc(m.content)}</div>`;
+    } else if(m.role==='assistant' && typeof m.content==='string'){
+      html += `<div class="bubble assistant" style="align-self:flex-start">${esc(m.content)}</div>`;
+    }
+  }
+  if(social.loading) html += `<div class="typing"><span></span><span></span><span></span></div>`;
+  box.innerHTML = html;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendSocial(id){
+  const input = document.getElementById('social-input');
+  if(!input) return;
+  const text = input.value.trim();
+  if(!text) return;
+  const c = state.clients[id];
+  const social = state.social[id];
+  if(social.loading) return;
+  social.messages.push({ role:'user', content:text });
+  input.value='';
+  social.loading = true;
+  renderSocialMessages(id);
+  const sendBtn0 = document.getElementById('social-send');
+  if(sendBtn0) sendBtn0.disabled = true;
+  try{
+    const body = {
+      model:'claude-sonnet-4-6',
+      max_tokens:300,
+      system: buildSocialSystemPrompt(c),
+      messages: social.messages.filter(m=>typeof m.content==='string').map(m=>({role:m.role, content:m.content}))
+    };
+    const res = await withTimeout(fetch('/api/clientos/ai', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    }), 20000);
+    const data = await res.json();
+    const text2 = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    social.messages.push({ role:'assistant', content: text2 || '(geen antwoord ontvangen)' });
+  }catch(err){
+    console.error('Social reply mislukt:', err);
+    social.messages.push({ role:'assistant', content:'⚠️ Kon geen antwoord ophalen, probeer het nog eens.' });
+  }
+  social.loading = false;
+  const sendBtn1 = document.getElementById('social-send');
+  if(sendBtn1) sendBtn1.disabled = false;
+  renderSocialMessages(id);
+}
+window.sendSocial = sendSocial;
+
+async function generatePosts(id){
+  const c = state.clients[id];
+  const topicEl = document.getElementById('post-topic');
+  const topic = topicEl ? topicEl.value.trim() : '';
+  const btn = document.getElementById('post-gen-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Bezig...'; }
+  try{
+    const prompt = `Schrijf 3 korte, wervende social media captions (Instagram-stijl, met relevante hashtags) voor dit bedrijf${topic?` over het onderwerp: "${topic}"`:''}.
+Bedrijf: ${c.name}${c.sector?` (${c.sector})`:''}
+${c.description?`Omschrijving: ${c.description}\n`:''}${c.services?`Diensten: ${c.services}\n`:''}
+Antwoord UITSLUITEND met geldige JSON: {"posts":["caption 1","caption 2","caption 3"]}. Geen markdown, geen uitleg.`;
+    const body = { model:'claude-sonnet-4-6', max_tokens:800, messages:[{role:'user', content:prompt}] };
+    const res = await withTimeout(fetch('/api/clientos/ai', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+    }), 25000);
+    const data = await res.json();
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    state.posts[id] = Array.isArray(parsed.posts) ? parsed.posts : [];
+    renderPostList(id);
+    toast('3 posts gegenereerd');
+  }catch(err){
+    console.error('Post generatie mislukt:', err);
+    toast('Genereren mislukt, probeer het nog eens');
+  }finally{
+    const btn2 = document.getElementById('post-gen-btn');
+    if(btn2){ btn2.disabled = false; btn2.textContent = 'Genereer 3 posts →'; }
+  }
+}
+window.generatePosts = generatePosts;
+
+function renderPostList(id){
+  const list = document.getElementById('post-list');
+  if(!list) return;
+  const posts = state.posts[id];
+  if(!posts.length){ list.innerHTML = `<div class="hint">Nog geen posts gegenereerd.</div>`; return; }
+  list.innerHTML = posts.map((p,i)=>`
+    <div class="post-card">${esc(p)}
+      <div class="post-actions"><button class="btn" onclick="copyPost(${i}, '${id}')">Kopiëren</button></div>
+    </div>`).join('');
+}
+function copyPost(i, id){
+  const text = state.posts[id][i];
+  navigator.clipboard.writeText(text).then(()=>toast('Caption gekopieerd')).catch(()=>toast('Kopiëren mislukt'));
+}
+window.copyPost = copyPost;
+
+function renderSuggestions(id, c){
+  const row = document.getElementById('suggest-row');
+  const examples = ['Wat kost het?', 'Zijn jullie dit weekend open?', PACKAGES[c.package].canReserve ? 'Ik wil iets reserveren' : 'Hoe kan ik contact opnemen?'];
+  row.innerHTML = examples.map(t=>`<div class="suggest" onclick="quickAsk('${id}', \`${t.replace(/`/g,'')}\`)">${esc(t)}</div>`).join('');
+}
+function quickAsk(id, text){
+  document.getElementById('chat-input').value = text;
+  sendChat(id);
+}
+window.quickAsk = quickAsk;
+
+function renderChatMessages(id){
+  const box = document.getElementById('chatbody');
+  if(!box) return;
+  const chat = state.chat[id];
+  let html = `<div class="bubble assistant">Hoi! Ik ben de AI-assistent van deze klant. Stel gerust een vrije vraag — ik lees mee met alles wat over dit bedrijf is ingevuld.</div>`;
+  for(const m of chat.messages){
+    if(m.role==='user' && typeof m.content==='string'){
+      html += `<div class="bubble user">${esc(m.content)}</div>`;
+    } else if(m.role==='assistant' && Array.isArray(m.content)){
+      const text = m.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+      if(text) html += `<div class="bubble assistant">${esc(text).replace(/\n/g,'<br>')}</div>`;
+    } else if(m.role==='event'){
+      html += `<div class="bubble event">${esc(m.content)}</div>`;
+    }
+  }
+  if(chat.loading){
+    html += `<div class="typing"><span></span><span></span><span></span></div>`;
+  }
+  box.innerHTML = html;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendChat(id){
+  const input = document.getElementById('chat-input');
+  if(!input) return;
+  const text = input.value.trim();
+  if(!text) return;
+  const chat = state.chat[id];
+  if(chat.loading) return;
+  chat.messages.push({ role:'user', content: text });
+  input.value='';
+  chat.loading = true;
+  renderChatMessages(id);
+  const sendBtn0 = document.getElementById('chat-send');
+  if(sendBtn0) sendBtn0.disabled = true;
+  await runTurn(id);
+  chat.loading = false;
+  const sendBtn1 = document.getElementById('chat-send');
+  if(sendBtn1) sendBtn1.disabled = false;
+  renderChatMessages(id);
+}
+window.sendChat = sendChat;
+
+async function runTurn(id, depth){
+  depth = depth || 0;
+  if(depth > 3) return; // safety valve against runaway tool loops
+  const c = state.clients[id];
+  const chat = state.chat[id];
+  const pkg = PACKAGES[c.package];
+
+  // build API-shaped messages (user content must be plain string or content-block array)
+  const apiMessages = chat.messages
+    .filter(m => m.role==='user' || m.role==='assistant')
+    .map(m => ({ role:m.role, content:m.content }));
+
+  const body = {
+    model:'claude-sonnet-4-6',
+    max_tokens:1000,
+    system: buildSystemPrompt(c),
+    messages: apiMessages
+  };
+  if(pkg.canReserve) body.tools = [RESERVATION_TOOL];
+
+  let data;
+  try{
+    const res = await fetch('/api/clientos/ai', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    data = await res.json();
+  }catch(err){
+    chat.messages.push({ role:'event', content:'Er ging iets mis bij het ophalen van een antwoord. Probeer het opnogen.' });
+    return;
+  }
+
+  if(!data || !data.content){
+    chat.messages.push({ role:'event', content:'Geen antwoord ontvangen — probeer het nog eens.' });
+    return;
+  }
+
+  chat.messages.push({ role:'assistant', content: data.content });
+  renderChatMessages(id);
+
+  if(data.stop_reason === 'tool_use'){
+    const toolBlocks = data.content.filter(b=>b.type==='tool_use');
+    const resultBlocks = [];
+    for(const tb of toolBlocks){
+      if(tb.name === 'plaats_reservering'){
+        const rec = await saveReservation(id, {
+          naam: tb.input.naam,
+          contact: tb.input.contact,
+          activiteit: tb.input.activiteit,
+          datum: tb.input.datum,
+          aantal_personen: tb.input.aantal_personen,
+          opmerkingen: tb.input.opmerkingen || ''
+        });
+        chat.messages.push({ role:'event', content:`✅ Reservering opgeslagen: ${rec.naam} — ${rec.activiteit} op ${rec.datum} (${rec.aantal_personen}p)` });
+        resultBlocks.push({ type:'tool_result', tool_use_id: tb.id, content:'Reservering succesvol opgeslagen in het systeem.' });
+        await refreshReservations(id, true);
+      } else {
+        resultBlocks.push({ type:'tool_result', tool_use_id: tb.id, content:'Onbekende actie.' });
+      }
+    }
+    chat.messages.push({ role:'user', content: resultBlocks });
+    renderChatMessages(id);
+    await runTurn(id, depth+1);
+  }
+}
+
+async function refreshReservations(id, enabled){
+  const list = document.getElementById('resv-list');
+  if(!list) return;
+  if(!enabled){
+    list.innerHTML = `<div class="hint">Dit pakket bevat geen reserveringsfunctie.</div>`;
+    return;
+  }
+  const items = await loadReservations(id);
+  if(items.length===0){
+    list.innerHTML = `<div class="hint">Nog geen reserveringen. Probeer de chat: "Ik wil iets reserveren".</div>`;
+    return;
+  }
+  list.innerHTML = items.map(r=>`
+    <div class="resv-item">
+      <b>${esc(r.naam)}</b> — ${esc(r.activiteit)}
+      <div class="meta">${esc(r.datum)} · ${esc(String(r.aantal_personen))}p · ${esc(r.contact)}${r.opmerkingen?` · "${esc(r.opmerkingen)}"`:''}</div>
+    </div>`).join('');
+}
+
+function copyEmbed(id){
+  const c = state.clients[id];
+  const embed = `<!-- TalkWave AI-assistent: ${c.name} -->\n<script src="https://cdn.talkwave.nl/widget.js" data-client="${c.id}" async><\/script>`;
+  navigator.clipboard.writeText(embed).then(()=>toast('Embedcode gekopieerd')).catch(()=>toast('Kopiëren mislukt — selecteer handmatig'));
+}
+window.copyEmbed = copyEmbed;
+
+function showConfirmModal(message, onConfirm){
+  const existing = document.getElementById('confirm-modal-overlay');
+  if(existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'confirm-modal-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-msg">${esc(message)}</div>
+      <div class="modal-actions">
+        <button class="btn" id="confirm-cancel">Annuleren</button>
+        <button class="btn btn-danger" id="confirm-ok">Verwijderen</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = ()=> overlay.remove();
+  document.getElementById('confirm-cancel').onclick = close;
+  overlay.onclick = (e)=>{ if(e.target === overlay) close(); };
+  document.getElementById('confirm-ok').onclick = ()=>{ close(); onConfirm(); };
+}
+
+async function onDeleteClient(id){
+  const c = state.clients[id];
+  if(!c) return;
+  showConfirmModal(`Weet je zeker dat je "${c.name}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`, async ()=>{
+    try{
+      await withTimeout(deleteClient(id), 4000);
+    }catch(err){
+      console.error('Verwijderen duurde te lang of mislukte, toch lokaal opruimen:', err);
+      state.clientIds = state.clientIds.filter(x=>x!==id);
+      delete state.clients[id];
+    }
+    toast('Klant verwijderd');
+    await go('dashboard');
+  });
+}
+window.onDeleteClient = onDeleteClient;
+
+/* ---------- init ---------- */
+window.addEventListener('error', e=>{ console.error('App error:', e.error||e.message); toast('Er ging iets mis — zie console'); });
+window.addEventListener('unhandledrejection', e=>{ console.error('Onverwerkte fout:', e.reason); toast('Er ging iets mis — zie console'); });
+
+(async function init(){
+  console.log('TalkWave Client OS: script geladen, bezig met initialiseren...');
+  try{
+    await withTimeout(loadAllClients(), 4000);
+  }catch(err){
+    console.error('Laden van klanten duurde te lang of mislukte, start leeg:', err);
+  }
+  try{
+    await render();
+  }catch(err){
+    console.error('Init mislukt:', err);
+    document.getElementById('main').innerHTML = '<div class="empty">Er ging iets mis bij het laden. Open de browserconsole voor details.</div>';
+  }
+})();
+</script>
+</body>
+</html>

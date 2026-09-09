@@ -415,12 +415,20 @@ export default function TidePage() {
           <span className="h-2 w-2 animate-pulse rounded-full bg-tide-accent" />
           <span className="hud-flicker">TIDE</span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="hud-text text-[10px] text-white/40 transition hover:text-white"
-        >
-          uitloggen
-        </button>
+        <div className="flex items-center gap-4">
+          <a
+            href="/clientos.html"
+            className="hud-text text-[10px] text-white/40 transition hover:text-tide-accent"
+          >
+            beheer
+          </a>
+          <button
+            onClick={handleLogout}
+            className="hud-text text-[10px] text-white/40 transition hover:text-white"
+          >
+            uitloggen
+          </button>
+        </div>
       </header>
 
       <div className="mx-auto mb-2 flex max-w-md flex-wrap justify-center gap-2 px-4">
