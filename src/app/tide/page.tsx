@@ -29,7 +29,8 @@ const QUICK_ACTIONS = [
   "Maak een 3D-model van een raket",
 ];
 
-const SCENE3D_TRIGGER = /\b3d[\s-]?model(len)?\b|\bin 3d\b|driedimensionaal/i;
+const SCENE3D_TRIGGER =
+  /\b3d[\s-]?(model(len)?|overzicht|weergave|plaatje|beeld|render|visualisatie|ontwerp|schets|impressie|scene|animatie)\b|\bin 3d\b|driedimensionaal/i;
 
 function NodeLines({ className }: { className?: string }) {
   const nodes = [
@@ -259,20 +260,31 @@ export default function TidePage() {
 
     // eslint-disable-next-line react-hooks/purity -- only runs from event handlers, never during render
     const startedAt = Date.now();
+    let res: Response;
     try {
-      const res = await fetch("/api/tide/chat", {
+      res = await fetch("/api/tide/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: trimmed, history }),
       });
-      // eslint-disable-next-line react-hooks/purity -- only runs from event handlers, never during render
-      setLastLatencyMs(Date.now() - startedAt);
+    } catch {
+      const reply =
+        "Kon geen verbinding maken met Tide's server. Check je internetverbinding en probeer opnieuw.";
+      setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
+      setThinking(false);
+      return;
+    }
+    // eslint-disable-next-line react-hooks/purity -- only runs from event handlers, never during render
+    setLastLatencyMs(Date.now() - startedAt);
+    try {
       const data = await res.json();
       const reply: string = data.reply || data.error || "Daar kwam geen antwoord op.";
       setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
       speak(reply);
     } catch {
-      const reply = "Er ging iets mis bij het verbinden met Tide's brein.";
+      const reply = res.ok
+        ? "Tide's antwoord kon niet worden gelezen. Probeer het nog eens."
+        : `Tide's server gaf een fout (${res.status}). Het duurde mogelijk te lang — probeer het nog eens.`;
       setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
     } finally {
       setThinking(false);
