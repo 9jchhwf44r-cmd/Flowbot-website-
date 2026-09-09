@@ -1,5 +1,7 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Reveal } from "@/components/Reveal";
+import { CursorSpotlight } from "@/components/CursorSpotlight";
+import { ScrollProgress } from "@/components/ScrollProgress";
 
 // Placeholder-copy — vervang met de echte Talkwave-teksten zodra die klaar zijn.
 const FEATURES = [
@@ -51,6 +53,7 @@ const PARTICLES = [
 export default function Home() {
   return (
     <main className="site-dark flex-1">
+      <ScrollProgress />
       <SiteNav />
 
       {/* Hero */}
@@ -72,6 +75,8 @@ export default function Home() {
             }}
           />
         ))}
+
+        <CursorSpotlight />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center text-center">
           <span className="hue-cycle mb-6 rounded-full border border-tide-accent/50 bg-white/5 px-4 py-1 text-xs uppercase tracking-widest text-tide-accent">
