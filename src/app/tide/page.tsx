@@ -1,12 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useVoice } from "@/hooks/useVoice";
-import { Scene3DViewer } from "@/components/Scene3DViewer";
 import { DailyBriefing } from "@/components/DailyBriefing";
+import { VoiceWaveform } from "@/components/VoiceWaveform";
+import { TypewriterText } from "@/components/TypewriterText";
+import { playListenStart, playListenEnd } from "@/lib/uiSound";
 import type { Scene3DData } from "@/lib/scene3d";
+
+// Three.js is alleen nodig zodra er echt een 3D-model getoond wordt — lazy
+// laden houdt de eerste paint van het Tide-scherm lichter, vooral op mobiel.
+const Scene3DViewer = dynamic(
+  () => import("@/components/Scene3DViewer").then((m) => m.Scene3DViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="hud-text flex h-40 items-center justify-center text-[10px] text-white/40">
+        3D-model laden...
+      </div>
+    ),
+  }
+);
 
 interface Message {
   role: "user" | "assistant";
@@ -31,6 +48,13 @@ const QUICK_ACTIONS = [
 
 const SCENE3D_TRIGGER =
   /\b3d[\s-]?(model(len)?|overzicht|weergave|plaatje|beeld|render|visualisatie|ontwerp|schets|impressie|scene|animatie)\b|\bin 3d\b|driedimensionaal/i;
+
+const IDLE_PHRASES = [
+  "STANDBY",
+  "SYSTEMEN NOMINAAL",
+  "WACHT OP INVOER",
+  "ALLE KOPPELINGEN GECONTROLEERD",
+];
 
 function NodeLines({ className }: { className?: string }) {
   const nodes = [
@@ -175,8 +199,10 @@ export default function TidePage() {
   const [showBriefing, setShowBriefing] = useState(true);
   const [uptime, setUptime] = useState(0);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
+  const [idlePhraseIndex, setIdlePhraseIndex] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
   const mountedAtRef = useRef<number | null>(null);
+  const wasListeningRef = useRef(false);
 
   const {
     supported,
@@ -211,6 +237,24 @@ export default function TidePage() {
       .then((data) => setConnectors(data.connectors ?? []))
       .catch(() => setConnectors([]));
   }, []);
+
+  const isIdle = !speaking && !listening && !transcribing && !thinking;
+
+  useEffect(() => {
+    if (!isIdle) return;
+    const id = setInterval(() => {
+      setIdlePhraseIndex((i) => (i + 1) % IDLE_PHRASES.length);
+    }, 4200);
+    return () => clearInterval(id);
+  }, [isIdle]);
+
+  // Korte activatietonen op echte start/stop van het luisteren (ook als
+  // native spraakherkenning zelf stopt, niet alleen bij een handmatige tik).
+  useEffect(() => {
+    if (listening && !wasListeningRef.current) playListenStart();
+    if (!listening && wasListeningRef.current) playListenEnd();
+    wasListeningRef.current = listening;
+  }, [listening]);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
@@ -315,7 +359,7 @@ export default function TidePage() {
     ? "LUISTEREN..."
     : thinking
     ? "VERWERKEN..."
-    : "STANDBY";
+    : IDLE_PHRASES[idlePhraseIndex];
 
   return (
     <main className="tide-theme flex min-h-screen flex-col font-mono">
@@ -381,6 +425,7 @@ export default function TidePage() {
         </div>
 
         <p className="hud-text hud-glow mb-2 h-5 text-xs text-tide-accent/80">{statusText}</p>
+        <VoiceWaveform mode={orbState} />
         {listening && transcript && (
           <p className="mb-4 max-w-xl text-center text-white/80 italic">“{transcript}”</p>
         )}
@@ -400,9 +445,11 @@ export default function TidePage() {
                   : "border border-tide-accent/20 bg-white/5 text-white/90"
               } ${m.scene ? "w-full max-w-full" : ""}`}
             >
-              {m.text.split("\n").map((line, j) => (
-                <div key={j}>{line}</div>
-              ))}
+              {m.role === "assistant" ? (
+                <TypewriterText text={m.text} />
+              ) : (
+                m.text.split("\n").map((line, j) => <div key={j}>{line}</div>)
+              )}
               {m.scene && (
                 <div className="mt-2">
                   <Scene3DViewer scene={m.scene} />
