@@ -1,5 +1,14 @@
-import ical, { VEvent } from "node-ical";
+import ical, { CalendarResponse, FetchOptions, VEvent } from "node-ical";
 import { CalendarEvent, ConnectorInfo } from "./types";
+
+// De officiële node-ical types laten de Promise-overload van fromURL geen
+// FetchOptions accepteren (alleen de callback-overload doet dat), terwijl
+// hij die op runtime-niveau wél doorgeeft aan fetch(). Zonder callback
+// geeft fromURL altijd een Promise terug (zie node-ical's core-api.js).
+const fromUrlWithOptions = ical.async.fromURL as (
+  url: string,
+  options: FetchOptions
+) => Promise<CalendarResponse>;
 
 /**
  * Generieke iCal/webcal-koppeling. Magister heeft geen officiële publieke API,
@@ -42,7 +51,18 @@ export async function getUpcomingIcsEvents(
   url: string,
   maxResults = 5
 ): Promise<CalendarEvent[]> {
-  const events = await ical.async.fromURL(toHttps(url));
+  // Sommige agenda-servers (waaronder Magister) weigeren verzoeken zonder
+  // een herkenbare browser/calendar-client User-Agent met een 403, ook als
+  // de webcal-link zelf geldig is. Ook geven we een timeout mee, zodat een
+  // trage server niet de hele serverless-functie laat vastlopen.
+  const events = await fromUrlWithOptions(toHttps(url), {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "text/calendar, */*",
+    },
+    signal: AbortSignal.timeout(8000),
+  });
   const now = Date.now();
 
   return Object.values(events)
