@@ -152,27 +152,65 @@ function MicIcon({ className }: { className?: string }) {
   );
 }
 
-function ConnectorGauge({ c }: { c: ConnectorInfo }) {
+function ConnectorCard({ c }: { c: ConnectorInfo }) {
   const ok = c.status === "connected";
   return (
-    <div className="flex flex-col items-center gap-1" title={c.detail}>
-      <svg width="30" height="30" viewBox="0 0 30 30">
-        <circle cx="15" cy="15" r="12" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-        <circle
-          cx="15"
-          cy="15"
-          r="12"
-          fill="none"
-          stroke={ok ? "#22d3ee" : "rgba(255,255,255,0.25)"}
-          strokeWidth="2"
-          strokeDasharray={ok ? "76 0" : "3 5"}
-          strokeLinecap="round"
-          transform="rotate(-90 15 15)"
-          style={ok ? { filter: "drop-shadow(0 0 4px #22d3ee)" } : undefined}
-        />
-      </svg>
-      <span className="hud-text text-[8px] leading-none text-white/50">{c.label}</span>
+    <div
+      title={c.detail}
+      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 transition ${
+        ok ? "border-tide-accent/40 bg-tide-accent/10" : "border-white/10 bg-white/5"
+      }`}
+    >
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${
+          ok ? "animate-pulse bg-tide-accent shadow-[0_0_6px_2px_rgba(34,211,238,0.7)]" : "bg-white/25"
+        }`}
+      />
+      <span className="hud-text text-[9px] leading-none whitespace-nowrap text-white/70">
+        {c.label}
+      </span>
+      <span
+        className={`hud-text text-[8px] leading-none whitespace-nowrap ${
+          ok ? "text-tide-accent/80" : "text-white/30"
+        }`}
+      >
+        {ok ? "ONLINE" : "OFFLINE"}
+      </span>
     </div>
+  );
+}
+
+/** Kleine deeltjes die op verschillende radii/snelheden om de orb draaien. */
+function OrbParticles() {
+  const specs = [
+    { inset: -2, duration: 9, size: 4, reverse: false, delay: 0 },
+    { inset: 6, duration: 15, size: 3, reverse: true, delay: 1.2 },
+    { inset: -12, duration: 21, size: 5, reverse: false, delay: 2.4 },
+    { inset: 14, duration: 12, size: 3, reverse: true, delay: 0.6 },
+  ];
+  return (
+    <>
+      {specs.map((s, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            inset: s.inset,
+            animation: `${s.reverse ? "tide-spin-reverse" : "tide-spin-slow"} ${s.duration}s linear infinite`,
+            animationDelay: `${s.delay}s`,
+          }}
+        >
+          <span
+            className="absolute left-1/2 top-0 -translate-x-1/2 rounded-full bg-tide-accent-2"
+            style={{
+              width: s.size,
+              height: s.size,
+              boxShadow: "0 0 8px 2px rgba(99,102,241,0.75)",
+            }}
+          />
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -385,10 +423,9 @@ export default function TidePage() {
         </button>
       </header>
 
-      <div className="relative mx-auto mb-2 flex gap-5 rounded border border-tide-accent/20 bg-black/20 px-5 py-2">
-        <HudCorners />
+      <div className="mx-auto mb-2 flex max-w-md flex-wrap justify-center gap-2 px-4">
         {connectors.map((c) => (
-          <ConnectorGauge key={c.id} c={c} />
+          <ConnectorCard key={c.id} c={c} />
         ))}
       </div>
 
@@ -410,6 +447,7 @@ export default function TidePage() {
       <div className="flex flex-1 flex-col items-center px-6 pb-6">
         <div className="relative my-8 flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
           <div className="tide-orb-ring-reverse absolute -inset-6 rounded-full border border-dotted border-tide-accent-2/25" />
+          <OrbParticles />
           <div className="tide-radar-sweep absolute inset-5" />
           <TickRing size={224} />
           <div className="tide-orb-ring absolute inset-5 rounded-full border border-dashed border-tide-accent/25" />
@@ -424,10 +462,39 @@ export default function TidePage() {
           />
         </div>
 
-        <p className="hud-text hud-glow mb-2 h-5 text-xs text-tide-accent/80">{statusText}</p>
-        <VoiceWaveform mode={orbState} />
+        <div className="relative mb-4 flex w-full max-w-xl items-center gap-4 rounded-full border border-tide-accent/25 bg-black/40 px-4 py-3 shadow-[0_0_50px_rgba(34,211,238,0.18)] backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={listening ? stopListening : startListening}
+            disabled={!supported || transcribing}
+            title={supported ? "Praat tegen Tide" : "Microfoon niet beschikbaar in deze browser"}
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition ${
+              listening
+                ? "bg-tide-accent text-tide-bg shadow-[0_0_30px_rgba(34,211,238,0.7)]"
+                : "bg-white/10 text-white hover:bg-white/20"
+            } disabled:opacity-30`}
+          >
+            <MicIcon className="h-6 w-6" />
+          </button>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="hud-text hud-glow whitespace-nowrap text-[10px] text-tide-accent/90 sm:text-[11px]">
+                PRAAT MET TIDE
+              </span>
+              <span className="hud-text truncate text-[9px] text-white/45">{statusText}</span>
+            </div>
+            <VoiceWaveform mode={orbState} />
+          </div>
+        </div>
+
         {listening && transcript && (
           <p className="mb-4 max-w-xl text-center text-white/80 italic">“{transcript}”</p>
+        )}
+        {!supported && (
+          <p className="mb-4 text-xs text-white/40">
+            Microfoon niet beschikbaar in deze browser — typ je vraag via &quot;nood: tekst&quot;.
+          </p>
         )}
 
         <div
@@ -463,25 +530,6 @@ export default function TidePage() {
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={listening ? stopListening : startListening}
-          disabled={!supported || transcribing}
-          title={supported ? "Praat tegen Tide" : "Microfoon niet beschikbaar in deze browser"}
-          className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-full transition ${
-            listening
-              ? "bg-tide-accent text-tide-bg shadow-[0_0_40px_rgba(34,211,238,0.6)]"
-              : "bg-white/10 text-white hover:bg-white/20"
-          } disabled:opacity-30`}
-        >
-          <MicIcon className="h-8 w-8" />
-        </button>
-        {!supported && (
-          <p className="mt-2 text-xs text-white/40">
-            Microfoon niet beschikbaar in deze browser — typ je vraag via &quot;nood: tekst&quot;.
-          </p>
-        )}
 
         <button
           onClick={() => setManualOpen((v) => !v)}
