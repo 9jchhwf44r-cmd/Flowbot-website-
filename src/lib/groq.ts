@@ -27,7 +27,9 @@ export async function chatWithGroq(
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  // llama-3.3-70b-versatile is per 17 juni 2026 door Groq uit dienst genomen;
+  // openai/gpt-oss-120b is de door Groq zelf aanbevolen vervanger.
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
